@@ -46,178 +46,47 @@ if (isset($_POST["submit"])) {
     $target_file = '/var/www/moridrin.com/tmp/' . basename($_FILES["html_file"]["name"]);
     move_uploaded_file($_FILES["html_file"]["tmp_name"], $target_file);
     $converted = WizardawnConverter::Convert(file_get_contents($target_file));
-    $map       = $converted['map'];
-    $title     = $converted['title'];
-    $ruler     = $converted['ruler'];
-    $merchants = $converted['merchants'];
-    $guilds    = $converted['guilds'];
-    $guards    = $converted['guards'];
-    $churches  = $converted['churches'];
+    ?>
+    Result<br/>
+    <textarea title="Result" style="width: 100%; height: 500px;">
+        <style>
+            .collapsible-body p {
+                padding: 0;
+            }
+        </style>
+        <?= isset($converted['map']) ? $converted['map'] : '' ?>
+        <?= isset($converted['title']) ? $converted['title'] : '' ?>
+        <ul class="collapsible" id="test" data-collapsible="expandable">
+            <?php foreach ($converted as $name => $value): ?>
+                <?php if ($name == 'map' || $name == 'title' || $name == 'houses'): ?>
+                    <?php continue; ?>
+                <?php endif; ?>
+                <?php if (!empty($value)): ?>
+                    <li>
+                        <div class="collapsible-header" style="line-height: initial; margin-top: 10px;">
+                            <img src="/convert/images/<?= $name ?>.jpg">
+                        </div>
+                        <div class="collapsible-body">
+                            <?= $value ?>
+                        </div>
+                    </li>
+                <?php endif; ?>
+            <?php endforeach; ?>
+        </ul>
+        <?= isset($converted['houses']) ? $converted['houses'] : '' ?>
+    </textarea>
+    <br/><br/>
+    <?php foreach ($converted as $name => $value): ?>
+        <br/><br/>
+        <?= mp_to_title($name) ?><br/>
+        <textarea title="<?= $name ?>" style="width: 100%; height: 100px;">
+            <style>
+                .collapsible-body p {
+                    padding: 0;
+                }
+            </style>
+            <?= $value ?>
+        </textarea>
+    <?php endforeach; ?>
+    <?php
 }
-?>
-Result<br/>
-<textarea>
-    <style>
-        .collapsible-body p {
-            padding: 0;
-        }
-    </style>
-    <?= $map ?>
-    <?= $title ?>
-    <ul class="collapsible" id="test" data-collapsible="expandable">
-        <li>
-            <div class="collapsible-header">
-                Ruler
-            </div>
-            <div class="collapsible-body">
-                <?= $ruler ?>
-            </div>
-        </li>
-        <li>
-            <div class="collapsible-header">
-                Merchants
-            </div>
-            <div class="collapsible-body">
-                <?= $merchants ?>
-            </div>
-        </li>
-        <li>
-            <div class="collapsible-header">
-                Guilds
-            </div>
-            <div class="collapsible-body">
-                <?= $guilds ?>
-            </div>
-        </li>
-        <li>
-            <div class="collapsible-header">
-                Guards
-            </div>
-            <div class="collapsible-body">
-                <?= $guards ?>
-            </div>
-        </li>
-        <li>
-            <div class="collapsible-header">
-                Churches
-            </div>
-            <div class="collapsible-body">
-                <?= $churches ?>
-            </div>
-        </li>
-    </ul>
-</textarea><br/><br/>
-<br/><br/>
-Map<br/>
-<textarea>
-    <style>
-        .collapsible-body p {
-            padding: 0;
-        }
-    </style>
-    <?= $map ?>
-</textarea><br/><br/>
-Title<br/>
-<textarea>
-    <style>
-        .collapsible-body p {
-            padding: 0;
-        }
-    </style>
-    <?= $title ?>
-</textarea><br/><br/>
-Ruler<br/>
-<textarea>
-    <style>
-        .collapsible-body p {
-            padding: 0;
-        }
-    </style>
-    <ul class="collapsible" id="test" data-collapsible="expandable">
-        <li>
-            <div class="collapsible-header">
-                Ruler
-            </div>
-            <div class="collapsible-body">
-                <?= $ruler ?>
-            </div>
-        </li>
-    </ul>
-</textarea>
-<br/><br/>
-Merchants<br/>
-<textarea>
-    <style>
-        .collapsible-body p {
-            padding: 0;
-        }
-    </style>
-    <ul class="collapsible" id="test" data-collapsible="expandable">
-        <li>
-            <div class="collapsible-header">
-                Merchants
-            </div>
-            <div class="collapsible-body">
-                <?= $merchants ?>
-            </div>
-        </li>
-    </ul>
-</textarea>
-<br/><br/>
-Guilds<br/>
-<textarea>
-    <style>
-        .collapsible-body p {
-            padding: 0;
-        }
-    </style>
-    <ul class="collapsible" id="test" data-collapsible="expandable">
-        <li>
-            <div class="collapsible-header">
-                Guilds
-            </div>
-            <div class="collapsible-body">
-                <?= $guilds ?>
-            </div>
-        </li>
-    </ul>
-</textarea>
-<br/><br/>
-Guards<br/>
-<textarea>
-    <style>
-        .collapsible-body p {
-            padding: 0;
-        }
-    </style>
-    <ul class="collapsible" id="test" data-collapsible="expandable">
-        <li>
-            <div class="collapsible-header">
-                Guards
-            </div>
-            <div class="collapsible-body">
-                <?= $guards ?>
-            </div>
-        </li>
-    </ul>
-</textarea>
-<br/><br/>
-Churches<br/>
-<textarea>
-    <style>
-        .collapsible-body p {
-            padding: 0;
-        }
-    </style>
-    <ul class="collapsible" id="test" data-collapsible="expandable">
-        <li>
-            <div class="collapsible-header">
-                Churches
-            </div>
-            <div class="collapsible-body">
-                <?= $churches ?>
-            </div>
-        </li>
-    </ul>
-</textarea>
-<br/><br/>

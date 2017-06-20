@@ -60,3 +60,17 @@ function mp_has_circular_reference($variable)
         return false;
     }
 }
+
+/**
+ * @param string $string
+ *
+ * @return string
+ */
+function mp_to_title($string)
+{
+    $string = preg_replace('/(?<!\ )[A-Z]/', ' $0', $string);
+    $string = str_replace('-', ' ', $string);
+    $string = str_replace('_', ' ', $string);
+    $string = ucwords($string);
+    return $string;
+}

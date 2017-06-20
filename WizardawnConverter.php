@@ -8,6 +8,9 @@
  */
 abstract class WizardawnConverter
 {
+    const DOC_TYPE = '<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"></head>';
+    private static $houses = array();
+
     public static function Convert($content)
     {
 //        $pregSearch = '/<b><i><font size="3">[0-9]<\/font><\/i><\/b><font size="2">&nbsp;-&nbsp;<b>(.*)<\/b>/';
@@ -15,88 +18,117 @@ abstract class WizardawnConverter
         $file = new DOMDocument();
         libxml_use_internal_errors(true);
         $file->loadHTML($content);
+        $body = $file->getElementsByTagName('body')->item(0);
 
-        $baseElements = $file->getElementsByTagName('body')->item(0)->childNodes;
+        $baseElements = $body->childNodes;
 
-        $mapPart       = '';
-        $titlePart     = '';
-        $rulerPart     = '';
-        $merchantsPart = '';
-        $guildsPart    = '';
-        $guardsPart    = '';
-        $churchesPart  = '';
-        $filter        = 'map';
-        foreach ($baseElements as $baseElement) {
-            $html = $file->saveHTML($baseElement);
+        for ($i = 0; $i < $baseElements->length; $i++) {
+            $html = $file->saveHTML($baseElements->item($i));
+            if (strpos($html, 'wtown_01.jpg') !== false) {
+                $badCode = trim($file->saveHTML($baseElements->item($i + 2)->childNodes->item(0)));
+            }
+        }
+        if (isset($badCode)) {
+            $html = $file->saveHTML();
+            $html = str_replace($badCode, $badCode . '</font>', $html);
+            $file->loadHTML($html);
+        }
+        $body = $file->getElementsByTagName('body')->item(0);
+
+        $baseElements = $body->childNodes;
+
+        $parts  = array();
+        $filter = 'map';
+        for ($i = 0; $i < $baseElements->length; $i++) {
+            $baseElement = $baseElements->item($i);
+            $html        = $file->saveHTML($baseElement);
             if ($filter == 'map' && strpos($html, '<hr>') !== false) {
                 $filter = 'title';
                 continue;
             }
+            if (strpos($html, 'wtown_01.jpg') !== false) {
+                $filter = 'citizens';
+                continue;
+            }
             if (strpos($html, 'wtown_02.jpg') !== false) {
                 $filter = 'ruler';
-                $html   = preg_replace('/.\/[\s\S]+?\//', '/convert/', $html);
-            }
-            if (strpos($html, 'wtown_06.jpg') !== false) {
-                $filter = 'merchants';
-                $html   = preg_replace('/.\/[\s\S]+?\//', '/convert/', $html);
-            }
-            if (strpos($html, 'wtown_07.jpg') !== false) {
-                $filter = 'guilds';
-                $html   = preg_replace('/.\/[\s\S]+?\//', '/convert/', $html);
+                continue;
             }
             if (strpos($html, 'wtown_03.jpg') !== false) {
                 $filter = 'guards';
-                $html   = preg_replace('/.\/[\s\S]+?\//', '/convert/', $html);
+                continue;
             }
             if (strpos($html, 'wtown_04.jpg') !== false) {
                 $filter = 'churches';
-                $html   = preg_replace('/.\/[\s\S]+?\//', '/convert/', $html);
+                continue;
             }
-            if ($filter == 'map') {
-                $mapPart .= $html;
+            if (strpos($html, 'wtown_05.jpg') !== false) {
+                $filter = 'banks';
+                continue;
             }
-            if ($filter == 'title') {
-                $titlePart .= $html;
+            if (strpos($html, 'wtown_06.jpg') !== false) {
+                $filter = 'merchants';
+                continue;
             }
-            if ($filter == 'ruler') {
-                $rulerPart .= $html;
+            if (strpos($html, 'wtown_07.jpg') !== false) {
+                $filter = 'guilds';
+                continue;
             }
-            if ($filter == 'merchants') {
-                $merchantsPart .= $html;
+            if (!isset($parts[$filter])) {
+                $parts[$filter] = '';
             }
-            if ($filter == 'guilds') {
-                $guildsPart .= $html;
+            $parts[$filter] .= trim($html);
+        }
+        $parts = array_filter($parts);
+
+        if (isset($parts['citizens'])) {
+            foreach ($parts as $key => &$part) {
+                switch ($key) {
+                    case 'citizens':
+                        $part = self::parseHouses($part);
+                        break;
+                    case 'guards':
+                    case 'churches':
+                    case 'banks':
+                    case 'merchants':
+                    case 'guilds':
+                        $part = self::appendToHouses($part);
+                        break;
+                }
+                $part = self::parsePart($part);
             }
-            if ($filter == 'guards') {
-                $guardsPart .= $html;
-            }
-            if ($filter == 'churches') {
-                $churchesPart .= $html;
+        } else {
+            foreach ($parts as $key => &$part) {
+                switch ($key) {
+                    case 'guards':
+                    case 'churches':
+                    case 'banks':
+                    case 'merchants':
+                    case 'guilds':
+                        $part = self::parseHouses($part);
+                        break;
+                }
+                $part = self::parsePart($part);
             }
         }
 
-        $merchantsPart = self::parseMerchants($merchantsPart);
+        foreach (self::$houses as &$house) {
+            $house = self::parsePart($house . '</div></div>');
+        }
+//        foreach ($parts as $key => &$part) {
+//            $found = preg_match_all("/###PLACEHOLDER_([0-9]+)###/", $part, $ids);
+//            if ($found) {
+//                foreach ($ids[1] as $id) {
+//                    $part = preg_replace("/###PLACEHOLDER_$id###/", self::$houses[$id] . '</div></div>', $part);
+//                }
+//            }
+//        }
+        $parts['houses'] = implode('', self::$houses);
 
-        $map       = self::parsePart($mapPart, 'maps');
-        $title     = self::parsePart($titlePart, 'maps');
-        $ruler     = self::parsePart($rulerPart, 'pics_tools');
-        $merchants = self::parsePart($merchantsPart, 'pics_tools');
-        $guilds    = self::parsePart($guildsPart, 'pics_tools');
-        $guards    = self::parsePart($guardsPart, 'pics_tools');
-        $churches  = self::parsePart($churchesPart, 'pics_tools');
-
-        return array(
-            'map'       => $map,
-            'title'     => $title,
-            'ruler'     => $ruler,
-            'merchants' => $merchants,
-            'guilds'    => $guilds,
-            'guards'    => $guards,
-            'churches'  => $churches,
-        );
+        return $parts;
     }
 
-    private static function parsePart($part, $imageFolder)
+    private static function parsePart($part)
     {
         $file = new DOMDocument();
         libxml_use_internal_errors(true);
@@ -106,21 +138,16 @@ abstract class WizardawnConverter
         foreach ($images as $image) {
             $imageStart = $file->saveHTML($image);
             if (strpos($imageStart, 'wizardawn.and-mag.com') === false && strpos($imageStart, 'convert') === false) {
-                $imageNew = preg_replace('/.\/[\s\S]+?\//', 'http://wizardawn.and-mag.com/' . $imageFolder . '/', $imageStart);
+                $imageNew = preg_replace('/.\/[\s\S]+?\//', 'http://wizardawn.and-mag.com/maps/', $imageStart);
                 $part     = str_replace($imageStart, $imageNew, $part);
             }
         }
-//        $hrTags = $file->getElementsByTagName('hr');
-//        foreach ($hrTags as $hr) {
-//            $startHTML = $file->saveHTML($hr);
-//            $part = str_replace($startHTML, '', $part);
-//        }
         $part = str_replace('<font', '<p', $part);
         $part = str_replace('</font', '</p', $part);
         return $part;
     }
 
-    private static function parseMerchants($merchantsPart)
+    private static function parseHouses($merchantsPart)
     {
         $merchantsPart = preg_replace("/<font size=\"3\">([0-9]+)<\/font>/", "##START##$0", $merchantsPart);
         $merchantsPart = str_replace(array('<b><i>', '</i></b>'), '', $merchantsPart);
@@ -131,11 +158,37 @@ abstract class WizardawnConverter
         foreach ($parts as &$part) {
             $found = preg_match_all("/<font size=\"3\">([0-9]+)<\/font>/", $part, $ids);
             if ($found) {
+                $id                = $ids[1][0];
+                $house             = "<div id=\"modal_$id\" class=\"modal modal-fixed-footer\"><div class=\"modal-content\">$part";
+                self::$houses[$id] = preg_replace("/<font size=\"3\">$id<\/font>/", "<h2>House $id</h2>", $house);
+                $part              = "<a class=\"modal-trigger\" href=\"#modal_$id\">House $id</a><br/>";
+            }
+        }
+        return implode('', $parts);
+    }
+
+    private static function appendToHouses($merchantsPart)
+    {
+        $merchantsPart = preg_replace("/<font size=\"3\">([0-9]+)<\/font>/", "##START##$0", $merchantsPart);
+        $merchantsPart = str_replace(array('<b><i>', '</i></b>'), '', $merchantsPart);
+        $merchantsPart = str_replace('</i><b>', '</i>', $merchantsPart);
+        $parts         = preg_split("/##START##/", $merchantsPart);
+        foreach ($parts as &$part) {
+            $found = preg_match_all("/<font size=\"3\">([0-9]+)<\/font>/", $part, $ids);
+            if ($found) {
                 preg_match_all("/ - <b>(.*)<\/b>/", $part, $titles);
-                $id    = $ids[1][0];
-                $title = $titles[1][0];
-                $part  = "<a class=\"modal-trigger\" href=\"#modal_$id\">$title</a><div id=\"modal_$id\" class=\"modal modal-fixed-footer\"><div class=\"modal-content\">$part</div></div>";
-                $part  = preg_replace("/<font size=\"3\">$id<\/font>(.*) - <b>(.*)<\/b>/", "<h2>$title</h2>", $part);
+                $id                = $ids[1][0];
+                $title             = $titles[1][0];
+
+                $file = new DOMDocument();
+                libxml_use_internal_errors(true);
+                $file->loadHTML(self::DOC_TYPE . $part);
+                $table = $file->getElementsByTagName('table')->item(0);
+
+                $part              = $file->saveHTML($table);
+                self::$houses[$id] .= $part;
+                self::$houses[$id] = str_replace("<h2>House $id</h2>", "<h2>$title ($id)</h2>", self::$houses[$id]);
+                $part              = "<a class=\"modal-trigger\" href=\"#modal_$id\">$title ($id)</a><br/>";
             }
         }
         return implode('', $parts);
