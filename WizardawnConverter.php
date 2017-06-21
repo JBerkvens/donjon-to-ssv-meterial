@@ -86,6 +86,8 @@ abstract class WizardawnConverter
                 switch ($key) {
                     case 'citizens':
                         $part = self::parseHouses($part);
+                        self::parseCitizens($part);
+                        self::$houses[count(self::$houses)] .= '<hr/>';
                         break;
                     case 'guards':
                     case 'churches':
@@ -156,6 +158,27 @@ abstract class WizardawnConverter
 //        $parts = preg_split($pregSearch, $merchantsPart);
         $parts = preg_split("/##START##/", $merchantsPart);
         foreach ($parts as &$part) {
+            if (preg_match_all("/<font size=\"3\">([0-9]+)<\/font>/", $part, $ids)) {
+                $id                = $ids[1][0];
+                $title             = "House $id";
+                $house             = "<div id=\"modal_$id\" class=\"modal modal-fixed-footer\"><div class=\"modal-content\">$part";
+                self::$houses[$id] = preg_replace("/<font size=\"3\">$id<\/font>/", "<h2>$title</h2>", $house);
+                if (preg_match_all("/ - <b>(.*?)<\/b>/", $part, $titles)) {
+                    $title = str_replace(':', '', $titles[1][0]) . " ($id)";
+                }
+                $part = "<a class=\"modal-trigger\" href=\"#modal_$id\">$title</a><br/>";
+            }
+        }
+        return implode('', $parts);
+    }
+
+    private static function parseCitizens($merchantsPart)
+    {
+        $merchantsPart = preg_replace("/<font size=\"3\">([0-9]+)<\/font>/", "##START##$0", $merchantsPart);
+        $merchantsPart = str_replace(array('<b><i>', '</i></b>'), '', $merchantsPart);
+        $merchantsPart = str_replace('</i><b>', '</i>', $merchantsPart);
+        $parts         = preg_split("/##START##/", $merchantsPart);
+        foreach ($parts as &$part) {
             $found = preg_match_all("/<font size=\"3\">([0-9]+)<\/font>/", $part, $ids);
             if ($found) {
                 $id                = $ids[1][0];
@@ -164,7 +187,6 @@ abstract class WizardawnConverter
                 $part              = "<a class=\"modal-trigger\" href=\"#modal_$id\">House $id</a><br/>";
             }
         }
-        return implode('', $parts);
     }
 
     private static function appendToHouses($merchantsPart)
@@ -177,15 +199,20 @@ abstract class WizardawnConverter
             $found = preg_match_all("/<font size=\"3\">([0-9]+)<\/font>/", $part, $ids);
             if ($found) {
                 preg_match_all("/ - <b>(.*)<\/b>/", $part, $titles);
-                $id                = $ids[1][0];
-                $title             = $titles[1][0];
+                preg_match_all("/\[(.*?)\] <b>(.*?):<\/b>/", $part, $info);
+                $id    = $ids[1][0];
+                $title = $titles[1][0];
+                $owner = $info[2][0];
+                $info  = $info[1][0];
 
                 $file = new DOMDocument();
                 libxml_use_internal_errors(true);
                 $file->loadHTML(self::DOC_TYPE . $part);
-                $table = $file->getElementsByTagName('table')->item(0);
-
-                $part              = $file->saveHTML($table);
+                $firstHR           = trim($file->saveHTML($file->getElementsByTagName('hr')->item(0)));
+                $htmlParts         = explode($firstHR, $part);
+                $htmlParts[0]      = "<h3><b>$owner</b> [$info]</h3>";
+                $part = trim(implode('', $htmlParts));
+                $part = "<hr/>$part";
                 self::$houses[$id] .= $part;
                 self::$houses[$id] = str_replace("<h2>House $id</h2>", "<h2>$title ($id)</h2>", self::$houses[$id]);
                 $part              = "<a class=\"modal-trigger\" href=\"#modal_$id\">$title ($id)</a><br/>";

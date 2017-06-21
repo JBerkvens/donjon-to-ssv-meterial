@@ -55,7 +55,6 @@ if (isset($_POST["submit"])) {
             }
         </style>
         <?= isset($converted['map']) ? $converted['map'] : '' ?>
-        <?= isset($converted['title']) ? $converted['title'] : '' ?>
         <ul class="collapsible" id="test" data-collapsible="expandable">
             <?php foreach ($converted as $name => $value): ?>
                 <?php if ($name == 'map' || $name == 'title' || $name == 'houses'): ?>
