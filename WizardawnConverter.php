@@ -33,6 +33,9 @@ abstract class WizardawnConverter
 
         foreach ($parts as $key => &$part) {
             switch ($key) {
+                case 'map':
+                    $part = self::parseMap($part);
+                    break;
                 case 'npcs':
                     $part = self::parseBuildings($part);
                     break;
@@ -53,8 +56,11 @@ abstract class WizardawnConverter
         $parts['buildings'] = self::finalizePart(implode('', self::$buildings));
 
         if (isset($parts['npcs'])) {
-            $emptyHouses = '';
-            $fullHTML = self::cleanCode(str_replace(self::cleanCode($parts['npcs']), '', implode('', $parts)));
+            $emptyHouses     = '';
+            $filterBuildings = $parts;
+            unset($filterBuildings['map']);
+            unset($filterBuildings['npcs']);
+            $fullHTML = self::cleanCode(implode('', $filterBuildings));
             if (preg_match_all("/.*?href=\"#modal_([0-9]+)\".*?<br\/>/", $parts['npcs'], $buildingSearces)) {
                 for ($i = 0; $i < count($buildingSearces[0]); $i++) {
                     $search = $buildingSearces[1][$i];
@@ -174,6 +180,42 @@ abstract class WizardawnConverter
     }
 
     /**
+     * This function parses the Map and adds links to the modals.
+     *
+     * @param string $basePart
+     *
+     * @return string
+     */
+    private static function parseMap($basePart)
+    {
+        $part = self::cleanCode($basePart);
+        $file = new DOMDocument();
+        libxml_use_internal_errors(true);
+        $file->loadHTML($part);
+
+        $oldMap = $file->getElementById('myMap');
+        if (preg_match("/width: ([0-9]+)px;/", $oldMap->getAttribute('style'), $mapWidth)) {
+            $mapWidth = (($mapWidth[1] - 5) + 100);
+        }
+        $newMap = '<div style="overflow: auto;">';
+        $newMap .= '<div style="width: ' . $mapWidth . 'px;">';
+        for ($i = 0; $i < $oldMap->childNodes->length; $i++) {
+            $column = $oldMap->childNodes->item($i);
+            if (!($column instanceof \DOMElement)) {
+                $column->parentNode->removeChild($column);
+            }
+        }
+        for ($i = 0; $i < $oldMap->childNodes->length; $i++) {
+            $column = $oldMap->childNodes->item($i);
+            $column = preg_replace("/color: #FF0000;\">([0-9]+)<\/div>/", "color: #FF0000;\"><a href=\"#modal_$1\">$1</a></div>", self::cleanCode($file->saveHTML($column)));
+            $column = preg_replace("/style=\"position:absolute;top:([0-9]+)px; left:([0-9]+)px; z-index:1;\"/", "style=\"display: inline-block; position:relative; padding: 0;\"", $column);
+            $newMap .= $column;
+        }
+
+        return self::finalizePart($newMap . '</div></div>');
+    }
+
+    /**
      * This function parses the raw HTML code from a part, saves the buildings to the buildings array and returns the HTML code for the part with links to open the buildings as modals.
      *
      * @param string $basePart
@@ -237,8 +279,8 @@ abstract class WizardawnConverter
                 $firstHR              = trim($file->saveHTML($file->getElementsByTagName('hr')->item(0)));
                 $htmlParts            = explode($firstHR, $building);
                 $htmlParts[0]         = "<h3><b>$profession</b> [$info]</h3>";
-                $building             = trim(implode('', $htmlParts));
-                self::$buildings[$id] = str_replace("<h1>Building $id</h1>", "<h1>$title</h1>", self::$buildings[$id] . "$building");
+                $building             = trim(implode('<hr/>', $htmlParts));
+                self::$buildings[$id] = str_replace("<h1>Building $id</h1>", "<h1>$title</h1>", self::$buildings[$id] . $building);
                 $newParts[]           = "<a class=\"modal-trigger\" href=\"#modal_$id\">$title (Building $id)</a><br/>";
             }
         }
@@ -268,8 +310,6 @@ abstract class WizardawnConverter
             }
         }
         $part = preg_replace("/<font.*?>(.*?)<\/font>/", "<span>$1</span>", $part);
-//        $part = str_replace('<font', '<span', $part);
-//        $part = str_replace('</font', '</span', $part);
         return self::cleanCode($part);
     }
 
@@ -285,13 +325,6 @@ abstract class WizardawnConverter
         $file = new DOMDocument();
         libxml_use_internal_errors(true);
         $file->loadHTML(utf8_decode($building));
-        $table = $file->getElementsByTagName('table')->item(0);
-        if ($table) {
-            $table->parentNode->removeChild($table);
-            $table = $file->saveHTML($table);
-        } else {
-            $table = '';
-        }
         $html = self::cleanCode($file->saveHTML());
         if (preg_match("/<h1>(.*?)<\/h1>/", $html, $title)) {
             $title = $title[0];
@@ -303,23 +336,25 @@ abstract class WizardawnConverter
         if (preg_match("/<font size=\"2\">-<b>(.*?)<\/font>/", $html, $owner)) {
             $html  = str_replace($owner[0], '###OWNER_PLACEHOLDER###', $html);
             $owner = self::parseNPC($owner[0], $buildingID);
+            $html  = str_replace('###OWNER_PLACEHOLDER###', self::npcToHTML($owner, false), $html);
             if (preg_match("/<font size=\"2\">--<b>(.*?)<\/font>/", $html, $spouse)) {
                 $html   = str_replace($spouse[0], '###SPOUSE_PLACEHOLDER###', $html);
                 $spouse = self::parseNPC($spouse[0], $buildingID);
                 self::updateNPC($owner, 'spouse', $spouse);
+                $html = str_replace('###SPOUSE_PLACEHOLDER###', self::npcToHTML($spouse, false, ' (spouse)'), $html);
             }
             if (preg_match_all("/<font size=\"2\">---<b>(.*?)<\/font>/", $html, $children)) {
                 for ($i = 0; $i < count($children[0]); $i++) {
                     $html  = str_replace($children[0][$i], '###CHILD_' . $i . '_PLACEHOLDER###', $html);
                     $child = self::parseNPC($children[0][$i], $buildingID);
                     self::updateNPC($owner, 'child', $child);
+                    $html = str_replace('###CHILD_' . $i . '_PLACEHOLDER###', self::npcToHTML($child, false, ' (child)'), $html);
                 }
             }
             if (preg_match("/<h3>(.*?)<\/h3>/", $html, $other)) {
-                $html = str_replace($other[0], '', $html);
-                if (preg_match("/\[(.*?)\]/", $html, $gold)) {
+                if (preg_match("/\[(.*?)\]/", $html, $prefessionInfo)) {
                     if (self::$createPosts) {
-                        self::updateNPC($owner, 'gold', $gold[1]);
+                        self::updateNPC($owner, 'profession_info', $prefessionInfo[1]);
                     }
                 }
                 if (preg_match("/<b>(.*?)<\/b>/", $html, $profession)) {
@@ -329,35 +364,34 @@ abstract class WizardawnConverter
                 }
             }
         } elseif (preg_match("/<font size=\"2\">(.*?)<\/font>/", $html, $owner)) {
-            $html       = $owner[0];
-            $gold       = 0;
-            $profession = '';
-            if (preg_match("/ \[(.*?)\]/", $html, $gold)) {
-                $html = str_replace($gold[0], '', $html);
-                $gold = $gold[1];
+            $owner          = $owner[0];
+            $prefessionInfo = 0;
+            $profession     = '';
+            if (preg_match("/ \[(.*?)\]/", $owner, $prefessionInfo)) {
+                $owner          = str_replace($prefessionInfo[0], '', $owner);
+                $prefessionInfo = $prefessionInfo[1];
             }
-            if (preg_match("/ <b>(.*?)<\/b> /", $html, $profession)) {
-                $html       = str_replace($profession[0], '-', $html);
+            if (preg_match("/ <b>(.*?)<\/b> /", $owner, $profession)) {
+                $owner      = str_replace($profession[0], '-', $owner);
                 $profession = $profession[1];
             }
-            $owner = self::parseNPC($html, $buildingID);
-            self::updateNPC($owner, 'gold', $gold);
+            $owner = self::parseNPC($owner, $buildingID);
             self::updateNPC($owner, 'profession', $profession);
+            self::updateNPC($owner, 'profession_info', $prefessionInfo);
         }
-        $building = self::cleanCode($title . self::npcToHTML($owner) . '<hr/>' . $table);
 
         if (self::$createPosts) {
             wp_insert_post(
                 array(
                     'post_title'   => $title,
-                    'post_content' => self::finalizePart($building),
+                    'post_content' => self::finalizePart($html),
                     'post_type'    => 'buildings',
                     'post_status'  => 'publish',
                 )
             );
         }
 
-        return $building;
+        return $html;
     }
 
     /**
@@ -491,36 +525,28 @@ abstract class WizardawnConverter
     }
 
     /**
-     * @param int  $npc       if createPost = true it will be an int otherwise it will be the array of NPCs.
-     * @param bool $withLinks set to false if you don't want to show the spouse and or children if any.
+     * @param int    $npc        if createPost = true it will be an int otherwise it will be the array of NPCs.
+     * @param bool   $withFamily set to false if you don't want to show the spouse and or children if any.
+     * @param string $familyDefinition can be set to append for example ' (spouse)' to the name.
      *
      * @return string with either the HTML of the NPC or a TAG for a WordPress post to include the NPC.
      */
-    private static function npcToHTML($npc, $withLinks = true)
+    private static function npcToHTML($npc, $withFamily = true, $familyDefinition = '')
     {
         if (self::$createPosts) {
-            if ($withLinks) {
-                return "[npc-$npc]";
-            } else {
-                return "<a href=\"[npc-url-$npc]\">";
-            }
+            return "[npc-$npc]";
         }
         if (is_numeric($npc)) {
             $npc = self::$npcs[$npc];
         }
-        if ($withLinks) {
-            $html = '<h3>' . $npc['name'] . '</h3>';
-        } else {
-            $html = '<h1>' . $npc['name'] . '</h1>';
-            $html .= '<a href="#modal_' . $npc['building'] . '">Building ' . $npc['building'] . '</a>';
-        }
+        $html = '<h3>' . $npc['name'] . $familyDefinition . '</h3>';
         $html .= '<p>';
         $html .= '<b>Height:</b> ' . $npc['height'] . ' <b>Weight:</b> ' . $npc['weight'] . '<br/>';
         $html .= $npc['description'] . '<br/>';
         $html .= '<b>Wearing:</b> ' . implode(', ', $npc['clothing']) . '<br/>';
         $html .= '<b>Possessions:</b> ' . implode(', ', $npc['possessions']) . '<br/>';
         $html .= '</p>';
-        if ($withLinks) {
+        if ($withFamily) {
             if (!empty($npc['spouse'])) {
                 $spouse = self::$npcs[$npc['spouse']];
                 $html   .= '<h3>' . $spouse['name'] . ' (spouse)</h3>';
