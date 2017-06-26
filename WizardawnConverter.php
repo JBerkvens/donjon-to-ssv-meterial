@@ -350,7 +350,7 @@ abstract class WizardawnConverter
                 }
             }
             if (preg_match("/<h3>(.*?)<\/h3>/", $html, $other)) {
-                $html  = preg_replace('/###(.*)###/', self::npcToHTML($owner, true, '', true), $html);
+                $html = preg_replace('/###(.*)###/', self::npcToHTML($owner, true, '', true), $html);
                 if (preg_match("/\[(.*?)\]/", $html, $professionInfo)) {
                     if (self::$createPosts) {
                         self::updateNPC($owner, 'profession_info', $professionInfo[1]);
@@ -362,7 +362,7 @@ abstract class WizardawnConverter
                     }
                 }
             } else {
-                $html  = preg_replace('/###(.*)###/', self::npcToHTML($owner, true, '', false), $html);
+                $html = preg_replace('/###(.*)###/', self::npcToHTML($owner, true, '', false), $html);
                 $html = str_replace('<hr>', '', $html);
             }
         } elseif (preg_match("/<font size=\"2\">(.*?)<\/font>/", $html, $owner)) {
@@ -527,37 +527,39 @@ abstract class WizardawnConverter
     }
 
     /**
-     * @param int    $npc              if createPost = true it will be an int otherwise it will be the array of NPCs.
+     * @param int    $npcID            if createPost = true it will be an int otherwise it will be the array of NPCs.
      * @param bool   $withFamily       set to false if you don't want to show the spouse and or children if any.
      * @param string $familyDefinition can be set to append for example ' (spouse)' to the name.
      * @param bool   $folded
      *
      * @return string with either the HTML of the NPC or a TAG for a WordPress post to include the NPC.
      */
-    private static function npcToHTML($npc, $withFamily = true, $familyDefinition = '', $folded = false)
+    private static function npcToHTML($npcID, $withFamily = true, $familyDefinition = '', $folded = false)
     {
         if (self::$createPosts) {
-            return "[npc-$npc]";
+            return "[npc-$npcID]";
         }
-        if (is_numeric($npc)) {
-            $npc = self::$npcs[$npc];
-        }
+        $npc  = self::$npcs[$npcID];
         $html = $folded ? '<ul class="collapsible" data-collapsible="accordion">' : '';
-        $html .= self::singleNPCToHTML($npc, $familyDefinition, $folded);
+        $html .= self::singleNPCToHTML($npcID, $familyDefinition, $folded);
         if ($withFamily) {
             if (!empty($npc['spouse'])) {
-                $html .= self::singleNPCToHTML(self::$npcs[$npc['spouse']], ' (spouse)' . $familyDefinition, $folded);
+                $html .= self::singleNPCToHTML($npc['spouse'], ' (spouse)' . $familyDefinition, $folded);
             }
             foreach ($npc['children'] as $child) {
-                $html .= self::singleNPCToHTML(self::$npcs[$child], ' (child)', $folded);
+                $html .= self::singleNPCToHTML($child, ' (child)', $folded);
             }
         }
         $html .= $folded ? '</ul>' : '';
         return self::cleanCode($html);
     }
 
-    private static function singleNPCToHTML($npc, $familyDefinition, $folded)
+    private static function singleNPCToHTML($npcID, $familyDefinition, $folded)
     {
+        if (self::$createPosts) {
+            return $folded ? "[npc-$npcID-li]" : "[npc-$npcID]";
+        }
+        $npc         = self::$npcs[$npcID];
         $title       = $npc['name'] . $familyDefinition;
         $height      = $npc['height'];
         $weight      = $npc['weight'];

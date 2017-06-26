@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     $converted = WizardawnConverter::Convert(file_get_contents($movedFile['file']), $type == 'mp_dd');
     if ($type == 'mp_dd') {
-        mp_var_export($converted['npcs']);
+        mp_var_export($converted);
     } else {
         ?>
         Result<br/>
