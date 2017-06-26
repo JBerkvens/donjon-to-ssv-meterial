@@ -12,6 +12,8 @@ use \DOMDocument;
  */
 abstract class WizardawnConverter
 {
+    private static $cityTaxomony;
+    private static $parts = array();
     private static $buildings = array();
     private static $npcs = array();
     private static $createPosts = false;
@@ -29,10 +31,23 @@ abstract class WizardawnConverter
         self::$createPosts = $createPosts;
         $content           = self::cleanCode($content);
         $content           = self::wizardawnBugfixes($content);
-        $parts             = self::parseContent($content);
+        self::$parts       = self::parseContent($content);
 
-        foreach ($parts as $key => &$part) {
+        foreach (self::$parts as $key => &$part) {
             switch ($key) {
+                case 'title':
+                    preg_match("/<font size=\"6\">(.*?)<\/font>/", $part, $title);
+                    $cityTitle = $title[1];
+                    $cityTerm  = term_exists('cities', 'building_category');
+                    if (!$cityTerm) {
+                        $cityTerm = wp_insert_term('cities', 'building_category');
+                    }
+                    $cityNameTerm = term_exists($cityTitle, 'building_category', $cityTerm['term_taxonomy_id']);
+                    if (!$cityNameTerm) {
+                        $cityNameTerm = wp_insert_term($cityTitle, 'building_category', array('parent' => $cityTerm['term_taxonomy_id']));
+                    }
+                    self::$cityTaxomony = $cityNameTerm['term_taxonomy_id'];
+                    break;
                 case 'map':
                     $part = self::parseMap($part);
                     break;
@@ -44,35 +59,39 @@ abstract class WizardawnConverter
                 case 'banks':
                 case 'merchants':
                 case 'guilds':
-                    $part = isset($parts['npcs']) ? self::appendToBuildings($part) : self::parseBuildings($part);
+                    $part = isset(self::$parts['npcs']) ? self::appendToBuildings($part) : self::parseBuildings($part);
                     break;
             }
             $part = self::finalizePart($part);
         }
 
+        $buildingsHTML = '';
         foreach (self::$buildings as $id => &$building) {
-            $building = self::finalizePart("<div id=\"modal_$id\" class=\"modal\"><div class=\"modal-content\">" . self::parseNPCs($building, $id) . "</div></div>");
+            $buildingsHTML .= self::finalizeBuilding($building);
         }
-        $parts['buildings'] = self::finalizePart(implode('', self::$buildings));
+        self::$parts['buildings'] = self::finalizePart($buildingsHTML);
 
-        if (isset($parts['npcs'])) {
-            $emptyHouses     = '';
-            $filterBuildings = $parts;
+        if (isset(self::$parts['npcs'])) {
+            $houses          = '';
+            $filterBuildings = self::$parts;
             unset($filterBuildings['map']);
             unset($filterBuildings['npcs']);
             $fullHTML = self::cleanCode(implode('', $filterBuildings));
-            if (preg_match_all("/.*?href=\"#modal_([0-9]+)\".*?<br\/>/", $parts['npcs'], $buildingSearces)) {
+            if (preg_match_all("/.*?href=\"#modal_([0-9]+)\".*?<br\/>/", self::$parts['npcs'], $buildingSearces)) {
                 for ($i = 0; $i < count($buildingSearces[0]); $i++) {
                     $search = $buildingSearces[1][$i];
                     if (strpos($fullHTML, "href=\"#modal_$search\"") === false) {
-                        $emptyHouses .= $buildingSearces[0][$i];
+                        $houses .= $buildingSearces[0][$i];
                     }
                 }
             }
-            $parts['npcs'] = $emptyHouses;
+            self::$parts['npcs'] = $houses;
+        }
+        if (self::$createPosts) {
+            self::$parts['buildings'] = self::$buildings;
         }
 
-        return $parts;
+        return self::$parts;
     }
 
     /**
@@ -240,13 +259,18 @@ abstract class WizardawnConverter
                         $building = trim(str_replace($titles[0], '', $building));
                     }
                 }
-                self::$buildings[$id] = preg_replace("/<font size=\"3\">$id<\/font>/", "<h1>$title</h1>", $building);
+                $building = preg_replace("/<font size=\"3\">$id<\/font>/", '', $building);
+                if (!mp_ends_with($building, '<hr>')) {
+                    $building .= '<hr/>';
+                }
+                self::$buildings[$id] = array(
+                    'id'      => $id,
+                    'title'   => $title,
+                    'content' => $building,
+                );
                 $newParts[]           = "<a class=\"modal-trigger\" href=\"#modal_$id\">$title</a><br/>";
             }
         }
-
-        // All Buildings end with a '<hr/>' except for the last building so we add this manually.
-        self::$buildings[count(self::$buildings)] .= '<hr/>';
 
         return implode('', $newParts);
     }
@@ -276,12 +300,13 @@ abstract class WizardawnConverter
                 $file = new DOMDocument();
                 libxml_use_internal_errors(true);
                 $file->loadHTML($building);
-                $firstHR              = trim($file->saveHTML($file->getElementsByTagName('hr')->item(0)));
-                $htmlParts            = explode($firstHR, $building);
-                $htmlParts[0]         = "<h3><b>$profession</b> [$info]</h3>";
-                $building             = trim(implode('<hr/>', $htmlParts));
-                self::$buildings[$id] = str_replace("<h1>Building $id</h1>", "<h1>$title</h1>", self::$buildings[$id] . $building);
-                $newParts[]           = "<a class=\"modal-trigger\" href=\"#modal_$id\">$title (Building $id)</a><br/>";
+                $firstHR                         = trim($file->saveHTML($file->getElementsByTagName('hr')->item(0)));
+                $htmlParts                       = explode($firstHR, $building);
+                $htmlParts[0]                    = "<h3><b>$profession</b> [$info]</h3>";
+                $building                        = trim(implode('<hr/>', $htmlParts));
+                self::$buildings[$id]['title']   = $title;
+                self::$buildings[$id]['content'] .= $building;
+                $newParts[]                      = "<a class=\"modal-trigger\" href=\"#modal_$id\">$title (Building $id)</a><br/>";
             }
         }
         return implode('', $newParts);
@@ -294,7 +319,7 @@ abstract class WizardawnConverter
      *
      * @return string
      */
-    private static function finalizePart($part)
+    public static function finalizePart($part)
     {
         $part = self::cleanCode($part);
         $file = new DOMDocument();
@@ -304,7 +329,7 @@ abstract class WizardawnConverter
         $images = $file->getElementsByTagName('img');
         foreach ($images as $image) {
             $imageStart = self::cleanCode($file->saveHTML($image));
-            if (strpos($imageStart, 'wizardawn.and-mag.com') === false) {
+            if (strpos($imageStart, 'wizardawn.and-mag.com') === false && strpos($imageStart, 'ssv-material-parse') === false) {
                 $imageNew = self::cleanCode(preg_replace('/.\/[\s\S]+?\//', 'http://wizardawn.and-mag.com/maps/', $imageStart));
                 $part     = str_replace($imageStart, $imageNew, $part);
             }
@@ -316,22 +341,19 @@ abstract class WizardawnConverter
     /**
      * This function parses the NPCs out of the building formats them and puts them back in in the new format.
      *
-     * @param string $building
+     * @param string $buildingContent
      * @param int    $buildingID
      *
      * @return string
      */
-    private static function parseNPCs($building, $buildingID)
+    private static function parseNPCs($buildingContent, $buildingID)
     {
         $file = new DOMDocument();
         libxml_use_internal_errors(true);
-        $file->loadHTML(utf8_decode($building));
+        $file->loadHTML(utf8_decode($buildingContent));
         $html = self::cleanCode($file->saveHTML());
-        if (preg_match("/<h1>(.*?)<\/h1>/", $html, $title)) {
-            $title = $title[0];
-        }
-        if (strpos($building, 'This building is empty') !== false) {
-            return self::cleanCode("$title <p>This building is empty.</p>");
+        if (strpos($buildingContent, 'This building is empty') !== false) {
+            return self::cleanCode('<p>This building is empty.</p>');
         }
 
         if (preg_match("/<font size=\"2\">-<b>(.*?)<\/font>/", $html, $owner)) {
@@ -369,28 +391,17 @@ abstract class WizardawnConverter
             $owner          = $owner[0];
             $professionInfo = 0;
             $profession     = '';
-            if (preg_match("/ \[(.*?)\]/", $owner, $professionInfo)) {
+            if (preg_match("/\[(.*?)\]/", $owner, $professionInfo)) {
                 $owner          = str_replace($professionInfo[0], '', $owner);
                 $professionInfo = $professionInfo[1];
             }
-            if (preg_match("/ <b>(.*?)<\/b> /", $owner, $profession)) {
+            if (preg_match("/<b>(.*?)<\/b>/", $owner, $profession)) {
                 $owner      = str_replace($profession[0], '-', $owner);
                 $profession = $profession[1];
             }
             $owner = self::parseNPC($owner, $buildingID);
             self::updateNPC($owner, 'profession', $profession);
             self::updateNPC($owner, 'profession_info', $professionInfo);
-        }
-
-        if (self::$createPosts) {
-            wp_insert_post(
-                array(
-                    'post_title'   => $title,
-                    'post_content' => self::finalizePart($html),
-                    'post_type'    => 'buildings',
-                    'post_status'  => 'publish',
-                )
-            );
         }
 
         return $html;
@@ -412,7 +423,7 @@ abstract class WizardawnConverter
             'spouse'      => '',
             'children'    => array(),
             'clothing'    => array(),
-            'possession'  => array(),
+            'possessions' => array(),
             'building'    => $buildingID,
         );
         if (preg_match("/<font size=\"2\">-{1,}<b>(.*?):<\/b>/", $npcHTML, $name)) {
@@ -445,10 +456,10 @@ abstract class WizardawnConverter
                 $item = ucfirst(trim($item));
             }
         }
-        if (preg_match("/<b>POSSESSIONS:<\/b>(.*?)\./", $npcHTML, $possession)) {
-            $npcHTML           = str_replace($possession[0], '', $npcHTML);
-            $npc['possession'] = explode(', ', $possession[1]);
-            foreach ($npc['possession'] as &$item) {
+        if (preg_match("/<b>POSSESSIONS:<\/b>(.*?)\./", $npcHTML, $possessions)) {
+            $npcHTML            = str_replace($possessions[0], '', $npcHTML);
+            $npc['possessions'] = explode(', ', $possessions[1]);
+            foreach ($npc['possessions'] as &$item) {
                 if (mp_starts_with(trim($item), 'and')) {
                     $item = substr(trim($item), 3);
                 }
@@ -497,12 +508,11 @@ abstract class WizardawnConverter
             } else {
                 update_post_meta($npc, $key, $value);
             }
+        }
+        if ($key == 'child') {
+            self::$npcs[$npc]['children'][] = $value;
         } else {
-            if ($key == 'child') {
-                self::$npcs[$npc]['children'][] = $value;
-            } else {
-                self::$npcs[$npc][$key] = $value;
-            }
+            self::$npcs[$npc][$key] = $value;
         }
     }
 
@@ -536,11 +546,8 @@ abstract class WizardawnConverter
      */
     private static function npcToHTML($npcID, $withFamily = true, $familyDefinition = '', $folded = false)
     {
-        if (self::$createPosts) {
-            return "[npc-$npcID]";
-        }
         $npc  = self::$npcs[$npcID];
-        $html = $folded ? '<ul class="collapsible" data-collapsible="accordion">' : '';
+        $html = $folded ? '<ul class="collapsible" data-collapsible="expandable">' : '';
         $html .= self::singleNPCToHTML($npcID, $familyDefinition, $folded);
         if ($withFamily) {
             if (!empty($npc['spouse'])) {
@@ -565,7 +572,7 @@ abstract class WizardawnConverter
         $weight      = $npc['weight'];
         $description = $npc['description'];
         $wearing     = implode(', ', $npc['clothing']);
-        $profession  = implode(', ', $npc['possession']);
+        $possessions = implode(', ', $npc['possessions']);
 
         if ($folded) {
             $html = '<li>';
@@ -577,7 +584,7 @@ abstract class WizardawnConverter
             $html .= '<b>Height:</b> ' . $height . ' <b>Weight:</b> ' . $weight . '<br/>';
             $html .= $description . '<br/>';
             $html .= '<b>Wearing:</b> ' . $wearing . '<br/>';
-            $html .= '<b>Possessions:</b> ' . $profession . '<br/>';
+            $html .= '<b>Possessions:</b> ' . $possessions . '<br/>';
             $html .= '</p>';
             $html .= '</div>';
             $html .= '</li>';
@@ -588,9 +595,62 @@ abstract class WizardawnConverter
             $html .= '<b>Height:</b> ' . $height . ' <b>Weight:</b> ' . $weight . '<br/>';
             $html .= $description . '<br/>';
             $html .= '<b>Wearing:</b> ' . $wearing . '<br/>';
-            $html .= '<b>Possessions:</b> ' . $profession . '<br/>';
+            $html .= '<b>Possessions:</b> ' . $possessions . '<br/>';
             $html .= '</p>';
             return $html;
         }
+    }
+
+    private static function finalizeBuilding(&$building)
+    {
+        $buildingID          = $building['id'];
+        $building['content'] = self::parseNPCs($building['content'], $buildingID);
+        if (!self::$createPosts) {
+            $building['content'] = "<div id=\"modal_$buildingID\" class=\"modal\"><div class=\"modal-content\">" . $building['content'] . "</div></div>";
+        }
+        $building['content'] = self::finalizePart($building['content']);
+
+        $html = '<h1>' . $building['title'] . '</h1>';
+        $html .= $building['content'];
+
+        if (self::$createPosts) {
+            $building['post_id'] = wp_insert_post(
+                array(
+                    'post_title'   => $building['title'],
+                    'post_content' => $building['content'],
+                    'post_type'    => 'buildings',
+                    'post_status'  => 'publish',
+                    'tax_input'    => self::getTaxonomy($building),
+                )
+            );
+        }
+        return $html;
+    }
+
+    private static function getTaxonomy($building)
+    {
+        $categories = array();
+        foreach (self::$parts as $category => $part) {
+            if ($category == 'npcs' || $category == 'map') {
+                continue;
+            }
+            if (strpos($part, 'href="#modal_' . $building['id'] . '"') !== false) {
+                $categories[] = $category;
+            }
+        }
+        if (empty($categories)) {
+            $categories[] = 'houses';
+        }
+
+        $categoryTerms = array();
+        foreach ($categories as $category) {
+            $categoryTerm = term_exists($category, 'building_category');
+            if (!$categoryTerm) {
+                $categoryTerm = wp_insert_term($category, 'building_category');
+            }
+            $categoryTerms[] = $categoryTerm['term_taxonomy_id'];
+        }
+        $categoryTerms[] = self::$cityTaxomony;
+        return array('building_category' => $categoryTerms);
     }
 }

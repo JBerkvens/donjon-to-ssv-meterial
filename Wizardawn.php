@@ -30,7 +30,66 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     $converted = WizardawnConverter::Convert(file_get_contents($movedFile['file']), $type == 'mp_dd');
     if ($type == 'mp_dd') {
-        mp_var_export($converted);
+        preg_match("/<span>(.*?)<\/span>/", $converted['title'], $title);
+        $cityTitle   = $title[1];
+        $cityContent = '<style> .collapsible-body p {padding: 0;}</style>';
+        if (isset($converted['map'])) {
+
+            if (isset($converted['buildings'])) {
+                foreach ($converted['buildings'] as $building) {
+                    $buildingID     = $building['id'];
+                    $buildingPostID = $building['post_id'];
+                    $converted['map']    = str_replace("\"#modal_$buildingID\"", "\"[building-url-$buildingPostID]\"", $converted['map']);
+                }
+            }
+            $mapID       = wp_insert_post(
+                array(
+                    'post_title'   => $cityTitle,
+                    'post_content' => WizardawnConverter::finalizePart($converted['map']),
+                    'post_type'    => 'maps',
+                    'post_status'  => 'publish',
+                )
+            );
+            $cityContent .= "[map-$mapID]";
+        }
+        ob_start();
+        ?>
+        <ul class="collapsible" id="test" data-collapsible="expandable">
+            <?php foreach ($converted as $name => $value): ?>
+                <?php if ($name == 'map' || $name == 'title' || $name == 'buildings'): ?>
+                    <?php continue; ?>
+                <?php endif; ?>
+                <?php if (!empty($value)): ?>
+                    <li>
+                        <div class="collapsible-header" style="line-height: initial; margin-top: 10px;">
+                            <img src="<?= Parser::URL ?>/images/<?= $name ?>.jpg">
+                        </div>
+                        <div class="collapsible-body">
+                            <?= $value ?>
+                        </div>
+                    </li>
+                <?php endif; ?>
+            <?php endforeach; ?>
+        </ul>
+        <?php
+        $cityContent .= ob_get_clean();
+
+        if (isset($converted['buildings'])) {
+            foreach ($converted['buildings'] as $building) {
+                $buildingID     = $building['id'];
+                $buildingPostID = $building['post_id'];
+                $cityContent    = str_replace("\"#modal_$buildingID\"", "\"[building-url-$buildingPostID]\"", $cityContent);
+            }
+        }
+
+        wp_insert_post(
+            array(
+                'post_title'   => $cityTitle,
+                'post_content' => WizardawnConverter::finalizePart($cityContent),
+                'post_type'    => 'cities',
+                'post_status'  => 'publish',
+            )
+        );
     } else {
         ?>
         Result<br/>
