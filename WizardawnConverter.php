@@ -317,6 +317,7 @@ abstract class WizardawnConverter
      * This function parses the NPCs out of the building formats them and puts them back in in the new format.
      *
      * @param string $building
+     * @param int    $buildingID
      *
      * @return string
      */
@@ -336,25 +337,23 @@ abstract class WizardawnConverter
         if (preg_match("/<font size=\"2\">-<b>(.*?)<\/font>/", $html, $owner)) {
             $html  = str_replace($owner[0], '###OWNER_PLACEHOLDER###', $html);
             $owner = self::parseNPC($owner[0], $buildingID);
-            $html  = str_replace('###OWNER_PLACEHOLDER###', self::npcToHTML($owner, false), $html);
             if (preg_match("/<font size=\"2\">--<b>(.*?)<\/font>/", $html, $spouse)) {
                 $html   = str_replace($spouse[0], '###SPOUSE_PLACEHOLDER###', $html);
                 $spouse = self::parseNPC($spouse[0], $buildingID);
                 self::updateNPC($owner, 'spouse', $spouse);
-                $html = str_replace('###SPOUSE_PLACEHOLDER###', self::npcToHTML($spouse, false, ' (spouse)'), $html);
             }
             if (preg_match_all("/<font size=\"2\">---<b>(.*?)<\/font>/", $html, $children)) {
                 for ($i = 0; $i < count($children[0]); $i++) {
                     $html  = str_replace($children[0][$i], '###CHILD_' . $i . '_PLACEHOLDER###', $html);
                     $child = self::parseNPC($children[0][$i], $buildingID);
                     self::updateNPC($owner, 'child', $child);
-                    $html = str_replace('###CHILD_' . $i . '_PLACEHOLDER###', self::npcToHTML($child, false, ' (child)'), $html);
                 }
             }
             if (preg_match("/<h3>(.*?)<\/h3>/", $html, $other)) {
-                if (preg_match("/\[(.*?)\]/", $html, $prefessionInfo)) {
+                $html  = preg_replace('/###(.*)###/', self::npcToHTML($owner, true, '', true), $html);
+                if (preg_match("/\[(.*?)\]/", $html, $professionInfo)) {
                     if (self::$createPosts) {
-                        self::updateNPC($owner, 'profession_info', $prefessionInfo[1]);
+                        self::updateNPC($owner, 'profession_info', $professionInfo[1]);
                     }
                 }
                 if (preg_match("/<b>(.*?)<\/b>/", $html, $profession)) {
@@ -362,14 +361,17 @@ abstract class WizardawnConverter
                         self::updateNPC($owner, 'profession', $profession[1]);
                     }
                 }
+            } else {
+                $html  = preg_replace('/###(.*)###/', self::npcToHTML($owner, true, '', false), $html);
+                $html = str_replace('<hr>', '', $html);
             }
         } elseif (preg_match("/<font size=\"2\">(.*?)<\/font>/", $html, $owner)) {
             $owner          = $owner[0];
-            $prefessionInfo = 0;
+            $professionInfo = 0;
             $profession     = '';
-            if (preg_match("/ \[(.*?)\]/", $owner, $prefessionInfo)) {
-                $owner          = str_replace($prefessionInfo[0], '', $owner);
-                $prefessionInfo = $prefessionInfo[1];
+            if (preg_match("/ \[(.*?)\]/", $owner, $professionInfo)) {
+                $owner          = str_replace($professionInfo[0], '', $owner);
+                $professionInfo = $professionInfo[1];
             }
             if (preg_match("/ <b>(.*?)<\/b> /", $owner, $profession)) {
                 $owner      = str_replace($profession[0], '-', $owner);
@@ -377,7 +379,7 @@ abstract class WizardawnConverter
             }
             $owner = self::parseNPC($owner, $buildingID);
             self::updateNPC($owner, 'profession', $profession);
-            self::updateNPC($owner, 'profession_info', $prefessionInfo);
+            self::updateNPC($owner, 'profession_info', $professionInfo);
         }
 
         if (self::$createPosts) {
@@ -410,7 +412,7 @@ abstract class WizardawnConverter
             'spouse'      => '',
             'children'    => array(),
             'clothing'    => array(),
-            'possessions' => array(),
+            'possession'  => array(),
             'building'    => $buildingID,
         );
         if (preg_match("/<font size=\"2\">-{1,}<b>(.*?):<\/b>/", $npcHTML, $name)) {
@@ -443,10 +445,10 @@ abstract class WizardawnConverter
                 $item = ucfirst(trim($item));
             }
         }
-        if (preg_match("/<b>POSSESSIONS:<\/b>(.*?)\./", $npcHTML, $possessions)) {
-            $npcHTML            = str_replace($possessions[0], '', $npcHTML);
-            $npc['possessions'] = explode(', ', $possessions[1]);
-            foreach ($npc['possessions'] as &$item) {
+        if (preg_match("/<b>POSSESSIONS:<\/b>(.*?)\./", $npcHTML, $possession)) {
+            $npcHTML           = str_replace($possession[0], '', $npcHTML);
+            $npc['possession'] = explode(', ', $possession[1]);
+            foreach ($npc['possession'] as &$item) {
                 if (mp_starts_with(trim($item), 'and')) {
                     $item = substr(trim($item), 3);
                 }
@@ -525,13 +527,14 @@ abstract class WizardawnConverter
     }
 
     /**
-     * @param int    $npc        if createPost = true it will be an int otherwise it will be the array of NPCs.
-     * @param bool   $withFamily set to false if you don't want to show the spouse and or children if any.
+     * @param int    $npc              if createPost = true it will be an int otherwise it will be the array of NPCs.
+     * @param bool   $withFamily       set to false if you don't want to show the spouse and or children if any.
      * @param string $familyDefinition can be set to append for example ' (spouse)' to the name.
+     * @param bool   $folded
      *
      * @return string with either the HTML of the NPC or a TAG for a WordPress post to include the NPC.
      */
-    private static function npcToHTML($npc, $withFamily = true, $familyDefinition = '')
+    private static function npcToHTML($npc, $withFamily = true, $familyDefinition = '', $folded = false)
     {
         if (self::$createPosts) {
             return "[npc-$npc]";
@@ -539,35 +542,53 @@ abstract class WizardawnConverter
         if (is_numeric($npc)) {
             $npc = self::$npcs[$npc];
         }
-        $html = '<h3>' . $npc['name'] . $familyDefinition . '</h3>';
-        $html .= '<p>';
-        $html .= '<b>Height:</b> ' . $npc['height'] . ' <b>Weight:</b> ' . $npc['weight'] . '<br/>';
-        $html .= $npc['description'] . '<br/>';
-        $html .= '<b>Wearing:</b> ' . implode(', ', $npc['clothing']) . '<br/>';
-        $html .= '<b>Possessions:</b> ' . implode(', ', $npc['possessions']) . '<br/>';
-        $html .= '</p>';
+        $html = $folded ? '<ul class="collapsible" data-collapsible="accordion">' : '';
+        $html .= self::singleNPCToHTML($npc, $familyDefinition, $folded);
         if ($withFamily) {
             if (!empty($npc['spouse'])) {
-                $spouse = self::$npcs[$npc['spouse']];
-                $html   .= '<h3>' . $spouse['name'] . ' (spouse)</h3>';
-                $html   .= '<p>';
-                $html   .= '<b>Height:</b> ' . $spouse['height'] . ' <b>Weight:</b> ' . $spouse['weight'] . '<br/>';
-                $html   .= $spouse['description'] . '<br/>';
-                $html   .= '<b>Wearing:</b> ' . implode(', ', $spouse['clothing']) . '<br/>';
-                $html   .= '<b>Possessions:</b> ' . implode(', ', $spouse['possessions']) . '<br/>';
-                $html   .= '</p>';
+                $html .= self::singleNPCToHTML(self::$npcs[$npc['spouse']], ' (spouse)' . $familyDefinition, $folded);
             }
             foreach ($npc['children'] as $child) {
-                $child = self::$npcs[$child];
-                $html  .= '<h3>' . $child['name'] . ' (child)</h3>';
-                $html  .= '<p>';
-                $html  .= '<b>Height:</b> ' . $child['height'] . ' <b>Weight:</b> ' . $child['weight'] . '<br/>';
-                $html  .= $child['description'] . '<br/>';
-                $html  .= '<b>Wearing:</b> ' . implode(', ', $child['clothing']) . '<br/>';
-                $html  .= '<b>Possessions:</b> ' . implode(', ', $child['possessions']) . '<br/>';
-                $html  .= '</p>';
+                $html .= self::singleNPCToHTML(self::$npcs[$child], ' (child)', $folded);
             }
         }
+        $html .= $folded ? '</ul>' : '';
         return self::cleanCode($html);
+    }
+
+    private static function singleNPCToHTML($npc, $familyDefinition, $folded)
+    {
+        $title       = $npc['name'] . $familyDefinition;
+        $height      = $npc['height'];
+        $weight      = $npc['weight'];
+        $description = $npc['description'];
+        $wearing     = implode(', ', $npc['clothing']);
+        $profession  = implode(', ', $npc['possession']);
+
+        if ($folded) {
+            $html = '<li>';
+            $html .= '<div class="collapsible-header">';
+            $html .= $title;
+            $html .= '</div>';
+            $html .= '<div class="collapsible-body">';
+            $html .= '<p>';
+            $html .= '<b>Height:</b> ' . $height . ' <b>Weight:</b> ' . $weight . '<br/>';
+            $html .= $description . '<br/>';
+            $html .= '<b>Wearing:</b> ' . $wearing . '<br/>';
+            $html .= '<b>Possessions:</b> ' . $profession . '<br/>';
+            $html .= '</p>';
+            $html .= '</div>';
+            $html .= '</li>';
+            return $html;
+        } else {
+            $html = '<h3>' . $title . '</h3>';
+            $html .= '<p>';
+            $html .= '<b>Height:</b> ' . $height . ' <b>Weight:</b> ' . $weight . '<br/>';
+            $html .= $description . '<br/>';
+            $html .= '<b>Wearing:</b> ' . $wearing . '<br/>';
+            $html .= '<b>Possessions:</b> ' . $profession . '<br/>';
+            $html .= '</p>';
+            return $html;
+        }
     }
 }
