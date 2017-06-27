@@ -2,7 +2,7 @@
 
 namespace ssv_material_parser;
 
-require_once 'WizardawnConverter.php';
+require_once 'WizardawnConverter2.php';
 
 $type = isset($_POST['parse_output']) ? $_POST['parse_output'] : 'mp_dd';
 ?>
