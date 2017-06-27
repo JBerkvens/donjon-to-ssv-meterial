@@ -50,8 +50,12 @@ class BuildingParser extends Parser
     {
         foreach (self::$buildings as &$building) {
             /** @var DOMElement $html */
-            $html                = $building['html'];
-            $owner               = NPCParser::getNPCs(array('building_id' => $building['id'], 'type' => 'owner'))[0];
+            $html      = $building['html'];
+            $foundNPCs = NPCParser::getNPCs(array('building_id' => $building['id'], 'type' => 'owner'));
+            if (empty($foundNPCs)) {
+                //TODO Parse Owner.
+            }
+            $owner               = $foundNPCs[0];
             $owner['profession'] = str_replace(':', '', $html->childNodes->item(3)->textContent);
             NPCParser::updateNPC($owner);
             $building['owner'] = $owner['id'];
