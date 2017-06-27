@@ -24,7 +24,7 @@ class NPCParser extends Parser
      */
     public static function parseNPCs($basePart)
     {
-        self::parseBuildings($basePart);
+        self::parseBase($basePart);
         self::parseTypes();
         self::parseNames();
         self::parsePhysique();
@@ -37,7 +37,14 @@ class NPCParser extends Parser
         return self::$npcs;
     }
 
-    public static function getNPC($args)
+    /**
+     * This function returns an array of NPCs that fit the filters.
+     *
+     * @param array $args to match the keys and values to the NPC.
+     *
+     * @return array of NPCs matching the $args.
+     */
+    public static function getNPCs($args)
     {
         $matches = array();
         foreach (self::$npcs as $npc) {
@@ -51,20 +58,25 @@ class NPCParser extends Parser
                 $matches[] = $npc;
             }
         }
-        switch (count($matches)) {
-            case 0:
-                return null;
-            case 1:
-                return $matches[0];
-            default:
-                return $matches;
-        }
+        return $matches;
     }
 
     /**
+     * This function replaces one of the NPCs with the given NPC based on the id field.
+     *
+     * @param array $npc the new NPC.
+     */
+    public static function updateNPC($npc)
+    {
+        self::$npcs[$npc['id']] = $npc;
+    }
+
+    /**
+     * This functions parses the $basePart into an array of NPCs containing an id, building_id and the DomElement HTML object.
+     *
      * @param string $basePart
      */
-    private static function parseBuildings($basePart)
+    private static function parseBase($basePart)
     {
         $part = self::cleanCode($basePart);
         $file = new DOMDocument();
@@ -81,7 +93,9 @@ class NPCParser extends Parser
                 if ($fontElement->childNodes->item(0)->textContent == '-This building is empty.') {
                     continue;
                 }
-                self::$npcs[] = array(
+                $id              = count(self::$npcs);
+                self::$npcs[$id] = array(
+                    'id'          => $id,
                     'building_id' => $buildingID,
                     'html'        => $fontElement,
                 );
@@ -89,6 +103,9 @@ class NPCParser extends Parser
         }
     }
 
+    /**
+     * This function updates the NPCs adding the type (either 'owner', 'spouse' or 'child).
+     */
     private static function parseTypes()
     {
         foreach (self::$npcs as &$npc) {
@@ -110,6 +127,9 @@ class NPCParser extends Parser
         }
     }
 
+    /**
+     * This function updates the NPCs adding the name of the NPC.
+     */
     private static function parseNames()
     {
         foreach (self::$npcs as &$npc) {
@@ -121,6 +141,9 @@ class NPCParser extends Parser
         }
     }
 
+    /**
+     * This function updates the NPCs adding the physical properties (height and weight).
+     */
     private static function parsePhysique()
     {
         foreach (self::$npcs as &$npc) {
@@ -145,6 +168,9 @@ class NPCParser extends Parser
         }
     }
 
+    /**
+     * This function updates the NPCs adding the description.
+     */
     private static function parseDescription()
     {
         foreach (self::$npcs as &$npc) {
@@ -156,6 +182,9 @@ class NPCParser extends Parser
         }
     }
 
+    /**
+     * This function updates the NPCs adding an array of clothing items.
+     */
     private static function parseClothing()
     {
         foreach (self::$npcs as &$npc) {
@@ -170,6 +199,9 @@ class NPCParser extends Parser
         }
     }
 
+    /**
+     * This function updates the NPCs adding an array of possessions.
+     */
     private static function parsePossessions()
     {
         foreach (self::$npcs as &$npc) {

@@ -6,7 +6,7 @@ use \DOMDocument;
 
 require_once "Wizardawn/MapParser.php";
 require_once "Wizardawn/NPCParser.php";
-require_once "Wizardawn/BuildingParser.php";
+require_once "Wizardawn/MerchantParser.php";
 
 /**
  * Created by PhpStorm.
@@ -39,12 +39,12 @@ abstract class WizardawnConverter extends Parser
                 case 'npcs':
                     self::$objects['npcs'] = NPCParser::parseNPCs($part);
                     break;
-                case 'guards':
-                case 'churches':
-                case 'banks':
+//                case 'guards':
+//                case 'churches':
+//                case 'banks':
                 case 'merchants':
-                case 'guilds':
-                    self::$objects['buildings'] = BuildingParser::parseBuildings($part);
+//                case 'guilds':
+                    self::$objects['buildings'] = MerchantParser::parseMerchant($part);
                     $part                  = isset($parts['npcs']) ? self::appendToBuildings($part) : self::parseBuildings($part);
                     break;
             }
