@@ -91,7 +91,7 @@ if (!function_exists('mp_var_export')) {
      *
      * @return string
      */
-    function mp_to_camel_case($string, $capitalizeFirstCharacter = false)
+    function mp_to_camel_case(&$string, $capitalizeFirstCharacter = false)
     {
         $string = str_replace(' ', '', mp_to_title($string));
 
@@ -107,7 +107,7 @@ if (!function_exists('mp_var_export')) {
      *
      * @return string
      */
-    function mp_to_title($string)
+    function mp_to_title(&$string)
     {
         $string = preg_replace('/(?<!\ )[A-Z]/', ' $0', $string);
         $string = str_replace('-', ' ', $string);
@@ -121,14 +121,15 @@ if (!function_exists('mp_var_export')) {
      *
      * @return string
      */
-    function mp_to_snake_case($string)
+    function mp_to_snake_case(&$string)
     {
         preg_match_all('!([A-Z][A-Z0-9]*(?=$|[A-Z][a-z0-9])|[A-Za-z][a-z0-9]+)!', $string, $matches);
         $ret = $matches[0];
         foreach ($ret as &$match) {
             $match = $match == strtoupper($match) ? strtolower($match) : lcfirst($match);
         }
-        return implode('_', $ret);
+        $string = implode('_', $ret);
+        return $string;
     }
 
     /**
@@ -136,7 +137,7 @@ if (!function_exists('mp_var_export')) {
      *
      * @return string
      */
-    function mp_to_value($string)
+    function mp_to_value(&$string)
     {
         $string = str_replace(' ', '_', $string);
         $string = strtolower($string);
