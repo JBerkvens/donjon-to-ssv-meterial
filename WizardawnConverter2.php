@@ -33,23 +33,29 @@ abstract class WizardawnConverter extends Parser
         foreach ($parts as $key => &$part) {
             switch ($key) {
                 case 'map':
-                    $parser              = MapParser::getParser();
+                    $parser        = MapParser::getParser();
                     $objects[$key] = $parser->parseMap($part);
                     break;
                 case 'npcs':
-                    $parser              = NPCParser::getParser();
+                    $parser        = NPCParser::getParser();
                     $objects[$key] = $parser->parseNPCs($part);
                     break;
                 case 'merchants':
                 case 'guards':
                 case 'churches':
                 case 'guilds':
-                    $parser              = new BuildingParser();
+                    $parser        = new BuildingParser();
                     $objects[$key] = $parser->parseBuildings($part);
                     break;
                 case 'banks':
                     mp_var_export('Banks aren\'t implemented yet.');
                     break;
+                case 'title':
+                    $part = self::cleanCode($part);
+                    $file = new DOMDocument();
+                    libxml_use_internal_errors(true);
+                    $file->loadHTML($part);
+                    $objects['title'] = $file->getElementsByTagName('font')->item(0)->firstChild->textContent;
             }
 
             $part = self::finalizePart($part);

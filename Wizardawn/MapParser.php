@@ -92,14 +92,14 @@ class MapParser extends Parser
         return $panel;
     }
 
-    public function toHTML()
+    public static function toHTML($map)
     {
-        $width = $this->map['width'];
+        $width = $map['width'];
         ob_start();
         ?>
         <div style="overflow: auto;">
             <div style="width: <?= $width ?>px;">
-                <?php foreach ($this->map['panels'] as $panel): ?>
+                <?php foreach ($map['panels'] as $panel): ?>
                     <div style="display: inline-block; position:relative; padding: 0;">
                         <img src="http://wizardawn.and-mag.com/maps/<?= $panel['image'] ?>">
                         <?php foreach ($panel['building_labels'] as $buildingLabel): ?>

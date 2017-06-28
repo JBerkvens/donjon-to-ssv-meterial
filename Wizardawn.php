@@ -28,25 +28,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         return;
     }
 
-    $converted = WizardawnConverter::Convert(file_get_contents($movedFile['file']), $type == 'mp_dd');
-    mp_var_export($converted, 1);
+    $city = WizardawnConverter::Convert(file_get_contents($movedFile['file']), $type == 'mp_dd');
+    mp_var_export($city, 1);
     if ($type == 'mp_dd') {
-        preg_match("/<span>(.*?)<\/span>/", $converted['title'], $title);
-        $cityTitle   = $title[1];
-        $cityContent = '<style> .collapsible-body p {padding: 0;}</style>';
-        if (isset($converted['map'])) {
-
-            if (isset($converted['buildings'])) {
-                foreach ($converted['buildings'] as $building) {
-                    $buildingID     = $building['id'];
-                    $buildingPostID = $building['post_id'];
-                    $converted['map']    = str_replace("\"#modal_$buildingID\"", "\"[building-url-$buildingPostID]\"", $converted['map']);
-                }
-            }
+        $cityContent = '';
+        if (isset($city['map'])) {
             $mapID       = wp_insert_post(
                 array(
-                    'post_title'   => $cityTitle,
-                    'post_content' => WizardawnConverter::finalizePart($converted['map']),
+                    'post_title'   => $city['title'],
+                    'post_content' => MapParser::toHTML($city['map']),
                     'post_type'    => 'maps',
                     'post_status'  => 'publish',
                 )
@@ -56,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         ob_start();
         ?>
         <ul class="collapsible" id="test" data-collapsible="expandable">
-            <?php foreach ($converted as $name => $value): ?>
+            <?php foreach ($city as $name => $value): ?>
                 <?php if ($name == 'map' || $name == 'title' || $name == 'buildings'): ?>
                     <?php continue; ?>
                 <?php endif; ?>
@@ -75,8 +65,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <?php
         $cityContent .= ob_get_clean();
 
-        if (isset($converted['buildings'])) {
-            foreach ($converted['buildings'] as $building) {
+        if (isset($city['buildings'])) {
+            foreach ($city['buildings'] as $building) {
                 $buildingID     = $building['id'];
                 $buildingPostID = $building['post_id'];
                 $cityContent    = str_replace("\"#modal_$buildingID\"", "\"[building-url-$buildingPostID]\"", $cityContent);
@@ -100,9 +90,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     padding: 0;
                 }
             </style>
-            <?= isset($converted['map']) ? $converted['map'] : '' ?>
+            <?= isset($city['map']) ? $city['map'] : '' ?>
             <ul class="collapsible" id="test" data-collapsible="expandable">
-                <?php foreach ($converted as $name => $value): ?>
+                <?php foreach ($city as $name => $value): ?>
                     <?php if ($name == 'map' || $name == 'title' || $name == 'buildings'): ?>
                         <?php continue; ?>
                     <?php endif; ?>
@@ -118,10 +108,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <?php endif; ?>
                 <?php endforeach; ?>
             </ul>
-            <?= isset($converted['buildings']) ? $converted['buildings'] : '' ?>
+            <?= isset($city['buildings']) ? $city['buildings'] : '' ?>
         </textarea>
         <br/><br/>
-        <?php foreach ($converted as $name => $value): ?>
+        <?php foreach ($city as $name => $value): ?>
             <br/><br/>
             <?= mp_to_title($name) ?><br/>
             <textarea title="<?= $name ?>" style="width: 100%; height: 100px;">
