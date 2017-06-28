@@ -64,6 +64,7 @@ class Parser
         $html = str_replace(Parser::REMOVE_HTML, '', $html);
         $html = preg_replace('!\s+!', ' ', $html);
         $html = iconv("UTF-8", "UTF-8//IGNORE", utf8_decode($html));
+        $html = str_replace('> <', '><', $html);
         $html = trim(preg_replace('/.*<\/head>/', '', $html));
         return $html;
     }

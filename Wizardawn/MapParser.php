@@ -15,7 +15,20 @@ use DOMText;
 
 class MapParser extends Parser
 {
-    private static $map = array('width' => 0, 'panels' => array());
+    private $map = array('width' => 0, 'panels' => array());
+    private static $parser;
+
+    private function __construct()
+    {
+    }
+
+    public static function getParser()
+    {
+        if (self::$parser == null) {
+            self::$parser = new MapParser();
+        }
+        return self::$parser;
+    }
 
     /**
      * This function parses the Map and adds links to the modals.
@@ -24,9 +37,9 @@ class MapParser extends Parser
      *
      * @return array
      */
-    public static function parseMap($basePart)
+    public function parseMap($basePart)
     {
-        $part = self::cleanCode($basePart);
+        $part = $this->cleanCode($basePart);
         $file = new DOMDocument();
         libxml_use_internal_errors(true);
         $file->loadHTML($part);
@@ -34,15 +47,15 @@ class MapParser extends Parser
         $map   = $file->getElementById('myMap');
         $width = $map->getAttribute("style");
         preg_match('/width: (.*?)px/', $width, $width);
-        self::$map['width'] = ($width[1] - 5) + 100;
+        $this->map['width'] = ($width[1] - 5) + 100;
         for ($i = 0; $i < $map->childNodes->length; $i++) {
             $panelElement = $map->childNodes->item($i);
             if ($panelElement instanceof DOMElement) {
-                self::$map['panels'][] = self::parsePanel($panelElement);
+                $this->map['panels'][] = $this->parsePanel($panelElement);
             }
         }
 
-        return self::$map;
+        return $this->map;
     }
 
     /**
@@ -50,7 +63,7 @@ class MapParser extends Parser
      *
      * @return array panel
      */
-    private static function parsePanel($panelElement)
+    private function parsePanel($panelElement)
     {
         $panel = array(
             'image'           => '',
@@ -79,14 +92,14 @@ class MapParser extends Parser
         return $panel;
     }
 
-    public static function toHTML()
+    public function toHTML()
     {
-        $width = self::$map['width'];
+        $width = $this->map['width'];
         ob_start();
         ?>
         <div style="overflow: auto;">
             <div style="width: <?= $width ?>px;">
-                <?php foreach (self::$map['panels'] as $panel): ?>
+                <?php foreach ($this->map['panels'] as $panel): ?>
                     <div style="display: inline-block; position:relative; padding: 0;">
                         <img src="http://wizardawn.and-mag.com/maps/<?= $panel['image'] ?>">
                         <?php foreach ($panel['building_labels'] as $buildingLabel): ?>
@@ -101,6 +114,6 @@ class MapParser extends Parser
             </div>
         </div>
         <?php
-        return self::cleanCode(ob_get_clean());
+        return $this->cleanCode(ob_get_clean());
     }
 }

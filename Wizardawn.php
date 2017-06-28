@@ -29,6 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 
     $converted = WizardawnConverter::Convert(file_get_contents($movedFile['file']), $type == 'mp_dd');
+    mp_var_export($converted, 1);
     if ($type == 'mp_dd') {
         preg_match("/<span>(.*?)<\/span>/", $converted['title'], $title);
         $cityTitle   = $title[1];
