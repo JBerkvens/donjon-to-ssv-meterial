@@ -41,11 +41,11 @@ abstract class WizardawnConverter extends Parser
                     $parser->parseNPCs($part);
                     break;
                 case 'merchants':
-                case 'guards':
+                case 'guardhouses':
                 case 'churches':
                 case 'guilds':
                     $parser               = new BuildingParser();
-                    $objects['buildings'] += $parser->parseBuildings($part);
+                    $objects['buildings'] += $parser->parseBuildings($part, $key);
                     break;
                 case 'banks':
                     mp_var_export('Banks aren\'t implemented yet.');
@@ -125,7 +125,7 @@ abstract class WizardawnConverter extends Parser
                 continue;
             }
             if (strpos($html, 'wtown_03.jpg') !== false) {
-                $filter = 'guards';
+                $filter = 'guardhouses';
                 continue;
             }
             if (strpos($html, 'wtown_04.jpg') !== false) {

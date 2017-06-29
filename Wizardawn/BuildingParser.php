@@ -20,12 +20,13 @@ class BuildingParser extends Parser
      * This function parses the Map and adds links to the modals.
      *
      * @param string $basePart
+     * @param string $type of the building (merchant, church, etc.).
      *
      * @return array of buildings
      */
-    public function parseBuildings($basePart)
+    public function parseBuildings($basePart, $type)
     {
-        $this->parseBase($basePart);
+        $this->parseBase($basePart, $type);
         $this->parseOwner();
         $this->parseTable();
         $this->parseNPCs();
@@ -36,8 +37,9 @@ class BuildingParser extends Parser
      * This function converts the base HTML string into an array of buildings with the id, title, gold and a DOMElement with the Building HTML.
      *
      * @param string $basePart
+     * @param string $type of the building (merchant, church, etc.).
      */
-    protected function parseBase($basePart)
+    protected function parseBase($basePart, $type)
     {
         $parts = explode('<hr>', $basePart);
         foreach ($parts as $part) {
@@ -55,6 +57,7 @@ class BuildingParser extends Parser
             $building['id']                   = $fontElements->item(0)->firstChild->textContent;
             $building['html']                 = $html;
             $building['title']                = $html->childNodes->item(1)->firstChild->textContent;
+            $building['type']                 = $type;
             $building['info']                 = trim(str_replace(array('[', ']'), '', $html->childNodes->item(2)->textContent));
             $this->buildings[$building['id']] = $building;
         }
@@ -122,7 +125,7 @@ class BuildingParser extends Parser
                     continue; // This is not an NPC but a spell.
                 }
                 $parser            = NPCParser::getParser();
-                $npc               = $parser->parseChurchNPC($npcPart, $building['id']);
+                $npc               = $parser->parseNPC($npcPart, $building['id'], $building['type']);
                 $npc['profession'] = ucfirst(strtolower(str_replace(':', '', $npcPart->childNodes->item(0)->textContent)));
                 $parser->updateNPC($npc);
                 $building['npcs'][] = $npc['id'];
@@ -150,9 +153,11 @@ class BuildingParser extends Parser
     }
 
     /**
-     * @param array $building
+     * @param array   $building
+     * @param array[] $npcs
+     * @param string  $city
      */
-    public static function toWordPress(&$building, $npcs)
+    public static function toWordPress(&$building, $npcs, $city)
     {
         $building['owner'] = $npcs[$building['owner']]['wp_id'];
         if (isset($building['npcs'])) {
@@ -168,7 +173,7 @@ class BuildingParser extends Parser
         foreach ($keysToCheck as $key) {
             $sql .= " LEFT JOIN $wpdb->postmeta AS pm_$key ON pm_$key.post_id = p.ID";
         }
-        $sql .= " WHERE p.post_type = 'building' AND p.post_title = '$title';";
+        $sql .= " WHERE p.post_type = 'building' AND p.post_title = '$title'";
         foreach ($keysToCheck as $key) {
             $value = $building[$key];
             $sql   .= " AND pm_$key.meta_key = '$key' AND pm_$key.meta_value = '$value'";
@@ -179,21 +184,43 @@ class BuildingParser extends Parser
             $building['wp_id'] = $foundBuilding->ID;
             return;
         }
+
+        $citiesTerm = term_exists('Cities', 'building_category', 0);
+        if (!$citiesTerm) {
+            $citiesTerm = wp_insert_term('Cities', 'building_category', array('parent' => 0));
+        }
+
+        $cityTerm = term_exists($city, 'building_category', $citiesTerm['term_taxonomy_id']);
+        if (!$cityTerm) {
+            $cityTerm = wp_insert_term($city, 'building_category', array('parent' => $citiesTerm['term_taxonomy_id']));
+        }
+
+        $buildingType     = mp_to_title($building['type']);
+        $buildingTypeTerm = term_exists($buildingType, 'building_category', 0);
+        if (!$buildingTypeTerm) {
+            $buildingTypeTerm = wp_insert_term($buildingType, 'building_category', array('parent' => 0));
+        }
+
+        $custom_tax = array(
+            'building_category' => array(
+                $cityTerm['term_taxonomy_id'],
+                $buildingTypeTerm['term_taxonomy_id'],
+            ),
+        );
+
         $postID = wp_insert_post(
             array(
                 'post_title'   => $building['title'],
                 'post_content' => self::toHTML($building),
                 'post_type'    => 'building',
                 'post_status'  => 'publish',
+                'tax_input'    => $custom_tax,
             )
         );
         foreach ($building as $key => $value) {
             if ($key == 'title' || $key == 'products' || $key == 'html') {
                 continue;
             }
-//            if (is_array($value)) {
-//                $value = implode(', ', $value);
-//            }
             update_post_meta($postID, $key, $value);
         }
         $building['wp_id'] = $postID;

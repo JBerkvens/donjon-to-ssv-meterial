@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             NPCParser::toWordPress($npc);
         }
         foreach ($city['buildings'] as &$building) {
-            BuildingParser::toWordPress($building, $city['npcs']);
+            BuildingParser::toWordPress($building, $city['npcs'], $city['title']);
         }
 //        $cityContent = '';
 //        if (isset($city['map'])) {

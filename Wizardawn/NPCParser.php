@@ -275,10 +275,11 @@ class NPCParser extends Parser
     /**
      * @param DOMElement $html
      * @param int        $buildingID
+     * @param string     $type
      *
      * @return mixed
      */
-    public function parseGuard($html, $buildingID)
+    public function parseNPC($html, $buildingID, $type)
     {
         /** @var DOMElement $html */
         $html  = $html->cloneNode(true);
@@ -292,34 +293,7 @@ class NPCParser extends Parser
             'id'          => $id,
             'building_id' => $buildingID,
             'html'        => $html,
-            'type'        => 'guard',
-            'level'       => $level,
-            'class'       => $class,
-        );
-        return $this->parseNPCs()[$id];
-    }
-
-    /**
-     * @param DOMElement $html
-     * @param int        $buildingID
-     *
-     * @return mixed
-     */
-    public function parseChurchNPC($html, $buildingID)
-    {
-        /** @var DOMElement $html */
-        $html  = $html->cloneNode(true);
-        $info  = explode(' ', $html->childNodes->item(1)->firstChild->textContent);
-        $level = $info[1];
-        $class = str_replace(']', '', $info[2]);
-        // Remove Merchant Specific Fields
-        $html->removeChild($html->childNodes->item(0));
-        $id              = count($this->npcs);
-        $this->npcs[$id] = array(
-            'id'          => $id,
-            'building_id' => $buildingID,
-            'html'        => $html,
-            'type'        => 'guard',
+            'type'        => $type,
             'level'       => $level,
             'class'       => $class,
         );
@@ -340,7 +314,7 @@ class NPCParser extends Parser
         foreach ($keysToCheck as $key) {
             $sql .= " LEFT JOIN $wpdb->postmeta AS pm_$key ON pm_$key.post_id = p.ID";
         }
-        $sql .= " WHERE p.post_type = 'npc' AND p.post_title = '$title' AND p.post_content = '$content';";
+        $sql .= " WHERE p.post_type = 'npc' AND p.post_title = '$title' AND p.post_content = '$content'";
         foreach ($keysToCheck as $key) {
             $value = $npc[$key];
             $sql   .= " AND pm_$key.meta_key = '$key' AND pm_$key.meta_value = '$value'";
@@ -351,12 +325,39 @@ class NPCParser extends Parser
             $npc['wp_id'] = $foundNPC->ID;
             return;
         }
+
+        switch ($npc['type']) {
+            case 'churches':
+                $npcType = 'Clergy';
+                break;
+            case 'guards':
+                $npcType = 'Guard';
+                break;
+            case 'guilds':
+                $npcType = 'Guild Member';
+                break;
+            default:
+                $npcType = 'Citizen';
+                break;
+        }
+        $npcTypeTerm = term_exists($npcType, 'npc_type', 0);
+        if (!$npcTypeTerm) {
+            $npcTypeTerm = wp_insert_term($npcType, 'npc_type', array('parent' => 0));
+        }
+
+        $custom_tax = array(
+            'npc_type' => array(
+                $npcTypeTerm['term_taxonomy_id'],
+            ),
+        );
+
         $postID = wp_insert_post(
             array(
                 'post_title'   => $npc['name'],
                 'post_content' => $npc['description'],
                 'post_type'    => 'npc',
                 'post_status'  => 'publish',
+                'tax_input'    => $custom_tax,
             )
         );
         foreach ($npc as $key => $value) {
