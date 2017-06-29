@@ -14,7 +14,8 @@ use DOMText;
 
 class BuildingParser extends Parser
 {
-    protected $buildings = array();
+    public static $houses = array();
+    private $buildings = array();
 
     /**
      * This function parses the Map and adds links to the modals.
@@ -30,6 +31,9 @@ class BuildingParser extends Parser
         $this->parseOwner();
         $this->parseTable();
         $this->parseNPCs();
+        if ($type == 'houses') {
+            self::$houses = $this->buildings;
+        }
         return $this->buildings;
     }
 
@@ -52,14 +56,20 @@ class BuildingParser extends Parser
             libxml_use_internal_errors(true);
             $file->loadHTML($part);
 
-            $fontElements                     = $file->getElementsByTagName('font');
-            $html                             = $fontElements->item(1);
-            $building['id']                   = $fontElements->item(0)->firstChild->textContent;
-            $building['html']                 = $html;
-            $building['title']                = $html->childNodes->item(1)->firstChild->textContent;
-            $building['type']                 = $type;
-            $building['info']                 = trim(str_replace(array('[', ']'), '', $html->childNodes->item(2)->textContent));
-            $this->buildings[$building['id']] = $building;
+            $fontElements = $file->getElementsByTagName('font');
+            $html         = $fontElements->item(1);
+            if ($html->childNodes->item(0)->textContent == '-This building is empty.') {
+                // This building is empty.
+                continue;
+            }
+            $id                   = $fontElements->item(0)->firstChild->textContent;
+            $building['id']       = $id;
+            $building['html']     = $html;
+            $title                = $html->childNodes->item(1)->firstChild->textContent;
+            $building['title']    = mp_ends_with($title, ':') ? "Building $id" : $title;
+            $building['type']     = $type;
+            $building['info']     = trim(str_replace(array('[', ']'), '', $html->childNodes->item(2)->textContent));
+            $this->buildings[$id] = $building;
         }
     }
 
@@ -115,6 +125,7 @@ class BuildingParser extends Parser
             if (isset($building['products'])) {
                 continue; // Buildings with products are merchants and those don't have more NPCs than just the owner (and that one is already parsed).
             }
+            mp_var_export($building['html'], 1);
             /** @var DOMElement $html */
             $html     = $building['html'];
             $npcParts = $html->getElementsByTagName('font');
@@ -124,10 +135,8 @@ class BuildingParser extends Parser
                     $this->parseSpell($building, $npcPart);
                     continue; // This is not an NPC but a spell.
                 }
-                $parser            = NPCParser::getParser();
-                $npc               = $parser->parseNPC($npcPart, $building['id'], $building['type']);
-                $npc['profession'] = ucfirst(strtolower(str_replace(':', '', $npcPart->childNodes->item(0)->textContent)));
-                $parser->updateNPC($npc);
+                $parser             = NPCParser::getParser();
+                $npc                = $parser->parseBuildingNPC($npcPart, $building['id'], $building['type']);
                 $building['npcs'][] = $npc['id'];
             }
         }
@@ -159,6 +168,7 @@ class BuildingParser extends Parser
      */
     public static function toWordPress(&$building, $npcs, $city)
     {
+        $building['city']  = $city;
         $building['owner'] = $npcs[$building['owner']]['wp_id'];
         if (isset($building['npcs'])) {
             foreach ($building['npcs'] as &$npcID) {
@@ -181,18 +191,12 @@ class BuildingParser extends Parser
         /** @var \WP_Post $foundBuilding */
         $foundBuilding = $wpdb->get_row($sql);
         if ($foundBuilding) {
-            $building['wp_id'] = $foundBuilding->ID;
-            return;
-        }
-
-        $citiesTerm = term_exists('Cities', 'building_category', 0);
-        if (!$citiesTerm) {
-            $citiesTerm = wp_insert_term('Cities', 'building_category', array('parent' => 0));
-        }
-
-        $cityTerm = term_exists($city, 'building_category', $citiesTerm['term_taxonomy_id']);
-        if (!$cityTerm) {
-            $cityTerm = wp_insert_term($city, 'building_category', array('parent' => $citiesTerm['term_taxonomy_id']));
+            $terms = wp_get_post_terms($foundBuilding->ID, 'building_category');
+            if (in_array($city, array_column($terms, 'name'))) {
+                //Only if the building is in the same city it is the same building.
+                $building['wp_id'] = $foundBuilding->ID;
+                return;
+            }
         }
 
         $buildingType     = mp_to_title($building['type']);
@@ -203,7 +207,6 @@ class BuildingParser extends Parser
 
         $custom_tax = array(
             'building_category' => array(
-                $cityTerm['term_taxonomy_id'],
                 $buildingTypeTerm['term_taxonomy_id'],
             ),
         );
@@ -228,30 +231,35 @@ class BuildingParser extends Parser
 
     public static function toHTML($building)
     {
-        if (!isset($building['products'])) {
-            return '';
-        }
         ob_start();
-        ?>
-        <table class="striped responsive-table">
-            <thead>
-            <tr>
-                <th>Item</th>
-                <th>Cost</th>
-                <th>Stock</th>
-            </tr>
-            </thead>
-            <tbody>
-            <?php foreach ($building['products'] as $product): ?>
+        echo '[npc-owner]';
+        if (isset($building['npcs'])) {
+            foreach ($building['npcs'] as $npcID) {
+                echo "[npc-$npcID]";
+            }
+        }
+        if (isset($building['products'])) {
+            ?>
+            <table class="striped responsive-table">
+                <thead>
                 <tr>
-                    <td><?= $product['item'] ?></td>
-                    <td><?= $product['cost'] ?></td>
-                    <td><?= $product['stock'] ?></td>
+                    <th>Item</th>
+                    <th>Cost</th>
+                    <th>Stock</th>
                 </tr>
-            <?php endforeach; ?>
-            </tbody>
-        </table>
-        <?php
+                </thead>
+                <tbody>
+                <?php foreach ($building['products'] as $product): ?>
+                    <tr>
+                        <td><?= $product['item'] ?></td>
+                        <td><?= $product['cost'] ?></td>
+                        <td><?= $product['stock'] ?></td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+            <?php
+        }
         return self::cleanCode(ob_get_clean());
     }
 }

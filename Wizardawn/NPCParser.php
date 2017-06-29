@@ -41,12 +41,14 @@ class NPCParser extends Parser
         if (empty($this->npcs) && is_string($basePart)) {
             $this->parseBase($basePart);
         }
-        $this->parseTypes();
-        $this->parseNames();
-        $this->parsePhysique();
-        $this->parseDescription();
-        $this->parseClothing();
-        $this->parsePossessions();
+        foreach ($this->npcs as &$npc) {
+            $this->parseType($npc);
+            $this->parseName($npc);
+            $this->parsePhysique($npc);
+            $this->parseDescription($npc);
+            $this->parseClothing($npc);
+            $this->parsePossessions($npc);
+        }
         return $this->npcs;
     }
 
@@ -104,6 +106,7 @@ class NPCParser extends Parser
                 $buildingID = $file->saveHTML($fontElement->childNodes->item(0));
             } elseif ($fontElement->getAttribute('size') == 2) {
                 if ($fontElement->childNodes->item(0)->textContent == '-This building is empty.') {
+                    // This building is empty
                     continue;
                 }
                 $id              = count($this->npcs);
@@ -118,134 +121,142 @@ class NPCParser extends Parser
 
     /**
      * This function updates the NPCs adding the type (either 'owner', 'spouse' or 'child).
+     *
+     * @param array $npc
      */
-    private function parseTypes()
+    private function parseType(&$npc)
     {
-        foreach ($this->npcs as &$npc) {
-            if (isset($npc['type'])) {
-                continue;
-            }
-            /** @var DOMElement $html */
-            $html = $npc['html'];
-            $type = $html->firstChild->textContent;
-            switch ($type) {
-                case '-':
-                    $type = 'owner';
-                    break;
-                case '--':
-                    $type = 'spouse';
-                    break;
-                case '---':
-                    $type = 'child';
-                    break;
-            }
-            $npc['type'] = $type;
+        if (isset($npc['type'])) {
+            return;
         }
+        /** @var DOMElement $html */
+        $html = $npc['html'];
+        $type = $html->firstChild->textContent;
+        switch ($type) {
+            case '-':
+                $type = 'owner';
+                break;
+            case '--':
+                $type = 'spouse';
+                break;
+            case '---':
+                $type = 'child';
+                break;
+        }
+        $npc['type'] = $type;
     }
 
     /**
      * This function updates the NPCs adding the name of the NPC.
+     *
+     * @param array $npc
      */
-    private function parseNames()
+    private function parseName(&$npc)
     {
-        foreach ($this->npcs as &$npc) {
-            if (isset($npc['name'])) {
-                continue;
-            }
-            /** @var DOMElement $html */
-            $html = $npc['html'];
-            $name = $html->childNodes->item(1)->firstChild->textContent;
-
-            $name        = str_replace(':', '', $name);
-            $npc['name'] = $name;
+        if (isset($npc['name'])) {
+            return;
         }
+        /** @var DOMElement $html */
+        $html = $npc['html'];
+        $name = $html->childNodes->item(1)->firstChild->textContent;
+
+        $name        = str_replace(':', '', $name);
+        $npc['name'] = $name;
     }
 
     /**
      * This function updates the NPCs adding the physical properties (height and weight).
+     *
+     * @param array $npc
      */
-    private function parsePhysique()
+    private function parsePhysique(&$npc)
     {
-        foreach ($this->npcs as &$npc) {
-            if (isset($npc['height']) && isset($npc['weight'])) {
-                continue;
+        if (isset($npc['height']) && isset($npc['weight'])) {
+            return;
+        }
+        /** @var DOMElement $html */
+        $html = $npc['html'];
+        $html = $html->ownerDocument->saveHTML($html);
+        if (preg_match("/\[<b>HGT:<\/b>(.*?)<b>WGT:<\/b>(.*?)\]/", $html, $physique)) {
+            $height = 0;
+            $weight = 0;
+            if (preg_match("/(.*?)ft/", $physique[1], $feet)) {
+                $height += intval($feet[1]) * 30.48;
             }
-            /** @var DOMElement $html */
-            $html = $npc['html'];
-            $html = $html->ownerDocument->saveHTML($html);
-            if (preg_match("/\[<b>HGT:<\/b>(.*?)<b>WGT:<\/b>(.*?)\]/", $html, $physique)) {
-                $height = 0;
-                $weight = 0;
-                if (preg_match("/(.*?)ft/", $physique[1], $feet)) {
-                    $height += intval($feet[1]) * 30.48;
-                }
-                if (preg_match("/, (.*?)in/", $physique[1], $inches)) {
-                    $height += intval($inches[1]) * 2.54;
-                }
-                if (preg_match("/(.*?)lbs/", $physique[2], $pounds)) {
-                    $weight = intval($pounds[1]) * 0.453592;
-                }
-                $npc['height'] = intval(round($height, 0));
-                $npc['weight'] = intval(round($weight, 0));
+            if (preg_match("/, (.*?)in/", $physique[1], $inches)) {
+                $height += intval($inches[1]) * 2.54;
             }
+            if (preg_match("/(.*?)lbs/", $physique[2], $pounds)) {
+                $weight = intval($pounds[1]) * 0.453592;
+            }
+            $npc['height'] = intval(round($height, 0));
+            $npc['weight'] = intval(round($weight, 0));
         }
     }
 
     /**
      * This function updates the NPCs adding the description.
+     *
+     * @param array $npc
      */
-    private function parseDescription($childID = 6)
+    private function parseDescription(&$npc)
     {
-        foreach ($this->npcs as &$npc) {
-            if (isset($npc['description'])) {
-                continue;
-            }
-            /** @var DOMElement $html */
-            $html               = $npc['html'];
-            $description        = $html->childNodes->item($childID)->textContent;
-            $description        = trim(explode(']', $description)[1]);
-            $npc['description'] = $description;
+        if (isset($npc['description'])) {
+            return;
         }
+        /** @var DOMElement $html */
+        $html               = $npc['html'];
+        $description        = $html->childNodes->item(6)->textContent;
+        $description        = trim(explode(']', $description)[1]);
+        $npc['description'] = $description;
     }
 
     /**
      * This function updates the NPCs adding an array of clothing items.
+     *
+     * @param array $npc
      */
-    private function parseClothing($childID = 8)
+    private function parseClothing(&$npc)
     {
-        foreach ($this->npcs as &$npc) {
-            if (isset($npc['clothing'])) {
-                continue;
-            }
-            /** @var DOMElement $html */
-            $html     = $npc['html'];
-            $clothing = trim($html->childNodes->item($childID)->textContent);
-            $clothing = explode(', ', $clothing);
-            foreach ($clothing as &$item) {
-                $item = ucfirst($item);
-            }
-            $npc['clothing'] = $clothing;
+        if (isset($npc['clothing'])) {
+            return;
         }
+        /** @var DOMElement $html */
+        $html            = $npc['html'];
+        $clothing        = ucfirst(trim($html->childNodes->item(8)->textContent));
+        $npc['clothing'] = $clothing;
     }
 
     /**
      * This function updates the NPCs adding an array of possessions.
+     *
+     * @param array $npc
      */
-    private function parsePossessions($childID = 10)
+    private function parsePossessions(&$npc)
     {
-        foreach ($this->npcs as &$npc) {
-            if (isset($npc['possessions'])) {
-                continue;
-            }
-            /** @var DOMElement $html */
-            $html     = $npc['html'];
-            $clothing = trim($html->childNodes->item($childID)->textContent);
-            $clothing = explode(', ', $clothing);
-            foreach ($clothing as &$item) {
-                $item = ucfirst($item);
-            }
-            $npc['possessions'] = $clothing;
+        if (isset($npc['possessions'])) {
+            return;
         }
+        /** @var DOMElement $html */
+        $html               = $npc['html'];
+        $possessions        = ucfirst(trim($html->childNodes->item(10)->textContent));
+        $npc['possessions'] = $possessions;
+    }
+
+    /**
+     * This function updates the NPCs adding an array of possessions.
+     *
+     * @param array $npc
+     */
+    private function parseArmsAndArmor(&$npc)
+    {
+        if (isset($npc['arms_armor'])) {
+            return;
+        }
+        /** @var DOMElement $html */
+        $html              = $npc['html'];
+        $armsAndArmor      = ucfirst(trim($html->childNodes->item(12)->textContent));
+        $npc['arms_armor'] = $armsAndArmor;
     }
 
     /**
@@ -279,25 +290,34 @@ class NPCParser extends Parser
      *
      * @return mixed
      */
-    public function parseNPC($html, $buildingID, $type)
+    public function parseBuildingNPC($html, $buildingID, $type)
     {
         /** @var DOMElement $html */
-        $html  = $html->cloneNode(true);
-        $info  = explode(' ', $html->childNodes->item(1)->firstChild->textContent);
-        $level = $info[1];
-        $class = str_replace(']', '', $info[2]);
-        // Remove Merchant Specific Fields
+        $html       = $html->cloneNode(true);
+        $info       = explode(' ', $html->childNodes->item(1)->firstChild->textContent);
+        $level      = $info[1];
+        $class      = str_replace(']', '', $info[2]);
+        $profession = mp_to_title(strtolower(str_replace(':', '', $html->childNodes->item(0)->textContent)));
         $html->removeChild($html->childNodes->item(0));
-        $id              = count($this->npcs);
-        $this->npcs[$id] = array(
+//        $foundNPC = self::getNPCs(array('building_id' => $buildingID, 'type' => $type, 'html' => $html));
+        $id  = count($this->npcs);
+        $npc = array(
             'id'          => $id,
             'building_id' => $buildingID,
             'html'        => $html,
             'type'        => $type,
+            'profession'  => $profession,
             'level'       => $level,
             'class'       => $class,
         );
-        return $this->parseNPCs()[$id];
+        $this->parseName($npc);
+        $this->parsePhysique($npc);
+        $this->parseDescription($npc);
+        $this->parseClothing($npc);
+        $this->parsePossessions($npc);
+        $this->parseArmsAndArmor($npc);
+        $this->npcs[$id] = $npc;
+        return $npc;
     }
 
     /**
@@ -363,9 +383,6 @@ class NPCParser extends Parser
         foreach ($npc as $key => $value) {
             if ($key == 'name' || $key == 'description' || $key == 'html') {
                 continue;
-            }
-            if (is_array($value)) {
-                $value = implode(', ', $value);
             }
             update_post_meta($postID, $key, $value);
         }

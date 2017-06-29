@@ -36,18 +36,41 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         foreach ($city['buildings'] as &$building) {
             BuildingParser::toWordPress($building, $city['npcs'], $city['title']);
         }
-//        $cityContent = '';
-//        if (isset($city['map'])) {
-//            $mapID       = wp_insert_post(
-//                array(
-//                    'post_title'   => $city['title'],
-//                    'post_content' => MapParser::toHTML($city['map']),
-//                    'post_type'    => 'maps',
-//                    'post_status'  => 'publish',
-//                )
-//            );
-//            $cityContent .= "[map-$mapID]";
-//        }
+        if (isset($city['map'])) {
+            MapParser::toWordPress($city['map'], $city['buildings'], $city['title']);
+        }
+
+        $cityHTML = isset($city['map']) ? '[map-' . $city['map']['wp_id'] . ']' : '';
+        $cityHTML .= '<ul class="collapsible" id="test" data-collapsible="expandable">';
+        foreach (array('houses', 'merchants', 'guardhouses', 'churches', 'guilds') as $part) {
+            $buildingsHTML = '';
+            foreach ($city['buildings'] as $building) {
+                if ($building['type'] == $part) {
+                    $buildingsHTML .= '[building-link-' . $building['wp_id'] . ']';
+                }
+            }
+            if (empty($buildingsHTML)) {
+                continue;
+            }
+
+            $url      = Parser::URL . '/images/' . $part . '.jpg';
+            $cityHTML .= '<li>';
+            $cityHTML .= '<div class="collapsible-header" style="line-height: initial; margin-top: 10px;">';
+            $cityHTML .= "<img src=\"$url\">";
+            $cityHTML .= '</div>';
+            $cityHTML .= '<div class="collapsible-body">';
+            $cityHTML .= $buildingsHTML;
+            $cityHTML .= '</div>';
+            $cityHTML .= '</li>';
+        }
+        wp_insert_post(
+            array(
+                'post_title'   => $city['title'],
+                'post_content' => $cityHTML,
+                'post_type'    => 'city',
+                'post_status'  => 'publish',
+            )
+        );
     } else {
         ?>
         Result<br/>
