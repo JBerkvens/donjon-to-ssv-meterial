@@ -114,6 +114,6 @@ class MapParser extends Parser
             </div>
         </div>
         <?php
-        return $this->cleanCode(ob_get_clean());
+        return self::cleanCode(ob_get_clean());
     }
 }

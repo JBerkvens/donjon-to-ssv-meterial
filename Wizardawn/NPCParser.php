@@ -14,6 +14,7 @@ use DOMElement;
 class NPCParser extends Parser
 {
     private $npcs = array();
+    /** @var  NPCParser $parser */
     private static $parser;
 
     private function __construct()
@@ -153,9 +154,6 @@ class NPCParser extends Parser
             }
             /** @var DOMElement $html */
             $html = $npc['html'];
-            if ($html->childNodes->item(1)->firstChild == null) {
-                mp_var_export($html, 1);
-            }
             $name = $html->childNodes->item(1)->firstChild->textContent;
 
             $name        = str_replace(':', '', $name);
@@ -203,11 +201,8 @@ class NPCParser extends Parser
                 continue;
             }
             /** @var DOMElement $html */
-            $html        = $npc['html'];
-            $description = $html->childNodes->item($childID)->textContent;
-            if (strpos($description, ']') === false) {
-                mp_var_export($description, 1);
-            }
+            $html               = $npc['html'];
+            $description        = $html->childNodes->item($childID)->textContent;
             $description        = trim(explode(']', $description)[1]);
             $npc['description'] = $description;
         }
@@ -329,5 +324,50 @@ class NPCParser extends Parser
             'class'       => $class,
         );
         return $this->parseNPCs()[$id];
+    }
+
+    /**
+     * @param array $npc
+     */
+    public static function toWordPress(&$npc)
+    {
+        $title   = $npc['name'];
+        $content = $npc['description'];
+        /** @var \wpdb $wpdb */
+        global $wpdb;
+        $sql         = "SELECT p.ID FROM $wpdb->posts AS p";
+        $keysToCheck = array('height', 'weight', 'type', 'building_id');
+        foreach ($keysToCheck as $key) {
+            $sql .= " LEFT JOIN $wpdb->postmeta AS pm_$key ON pm_$key.post_id = p.ID";
+        }
+        $sql .= " WHERE p.post_type = 'npc' AND p.post_title = '$title' AND p.post_content = '$content';";
+        foreach ($keysToCheck as $key) {
+            $value = $npc[$key];
+            $sql   .= " AND pm_$key.meta_key = '$key' AND pm_$key.meta_value = '$value'";
+        }
+        /** @var \WP_Post $foundNPC */
+        $foundNPC = $wpdb->get_row($sql);
+        if ($foundNPC) {
+            $npc['wp_id'] = $foundNPC->ID;
+            return;
+        }
+        $postID = wp_insert_post(
+            array(
+                'post_title'   => $npc['name'],
+                'post_content' => $npc['description'],
+                'post_type'    => 'npc',
+                'post_status'  => 'publish',
+            )
+        );
+        foreach ($npc as $key => $value) {
+            if ($key == 'name' || $key == 'description' || $key == 'html') {
+                continue;
+            }
+            if (is_array($value)) {
+                $value = implode(', ', $value);
+            }
+            update_post_meta($postID, $key, $value);
+        }
+        $npc['wp_id'] = $postID;
     }
 }

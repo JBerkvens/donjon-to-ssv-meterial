@@ -2,7 +2,7 @@
 
 namespace ssv_material_parser;
 
-require_once 'WizardawnConverter2.php';
+require_once 'WizardawnConverter.php';
 
 $type = isset($_POST['parse_output']) ? $_POST['parse_output'] : 'mp_dd';
 ?>
@@ -28,59 +28,26 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         return;
     }
 
-    $city = WizardawnConverter::Convert(file_get_contents($movedFile['file']), $type == 'mp_dd');
-    mp_var_export($city, 1);
+    $city = WizardawnConverter::Convert(file_get_contents($movedFile['file']));
     if ($type == 'mp_dd') {
-        $cityContent = '';
-        if (isset($city['map'])) {
-            $mapID       = wp_insert_post(
-                array(
-                    'post_title'   => $city['title'],
-                    'post_content' => MapParser::toHTML($city['map']),
-                    'post_type'    => 'maps',
-                    'post_status'  => 'publish',
-                )
-            );
-            $cityContent .= "[map-$mapID]";
+        foreach ($city['npcs'] as &$npc) {
+            NPCParser::toWordPress($npc);
         }
-        ob_start();
-        ?>
-        <ul class="collapsible" id="test" data-collapsible="expandable">
-            <?php foreach ($city as $name => $value): ?>
-                <?php if ($name == 'map' || $name == 'title' || $name == 'buildings'): ?>
-                    <?php continue; ?>
-                <?php endif; ?>
-                <?php if (!empty($value)): ?>
-                    <li>
-                        <div class="collapsible-header" style="line-height: initial; margin-top: 10px;">
-                            <img src="<?= Parser::URL ?>/images/<?= $name ?>.jpg">
-                        </div>
-                        <div class="collapsible-body">
-                            <?= $value ?>
-                        </div>
-                    </li>
-                <?php endif; ?>
-            <?php endforeach; ?>
-        </ul>
-        <?php
-        $cityContent .= ob_get_clean();
-
-        if (isset($city['buildings'])) {
-            foreach ($city['buildings'] as $building) {
-                $buildingID     = $building['id'];
-                $buildingPostID = $building['post_id'];
-                $cityContent    = str_replace("\"#modal_$buildingID\"", "\"[building-url-$buildingPostID]\"", $cityContent);
-            }
+        foreach ($city['buildings'] as &$building) {
+            BuildingParser::toWordPress($building, $city['npcs']);
         }
-
-        wp_insert_post(
-            array(
-                'post_title'   => $cityTitle,
-                'post_content' => WizardawnConverter::finalizePart($cityContent),
-                'post_type'    => 'cities',
-                'post_status'  => 'publish',
-            )
-        );
+//        $cityContent = '';
+//        if (isset($city['map'])) {
+//            $mapID       = wp_insert_post(
+//                array(
+//                    'post_title'   => $city['title'],
+//                    'post_content' => MapParser::toHTML($city['map']),
+//                    'post_type'    => 'maps',
+//                    'post_status'  => 'publish',
+//                )
+//            );
+//            $cityContent .= "[map-$mapID]";
+//        }
     } else {
         ?>
         Result<br/>
