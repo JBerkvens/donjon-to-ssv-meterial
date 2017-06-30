@@ -6,6 +6,7 @@ use \DOMDocument;
 
 require_once "Wizardawn/MapParser.php";
 require_once "Wizardawn/NPCParser.php";
+require_once "Wizardawn/RulersParser.php";
 require_once "Wizardawn/BuildingParser.php";
 
 /**
@@ -34,6 +35,9 @@ abstract class WizardawnConverter extends Parser
             switch ($key) {
                 case 'map':
                     $objects['map'] = MapParser::getParser()->parseMap($part);
+                    break;
+                case 'ruler':
+                    $objects['rulers'] = RulersParser::parseRulersBuilding($part);
                     break;
                 case 'npcs':
                     NPCParser::getParser()->parseNPCs($part);

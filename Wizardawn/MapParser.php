@@ -147,7 +147,7 @@ class MapParser extends Parser
         ob_start();
         ?>
         <div style="overflow-x: auto; overflow-y: hidden;">
-            <div style="width: <?= $width ?>px;">
+            <div style="width: <?= $width ?>px; margin: auto;">
                 <?php foreach ($map['panels'] as $panel): ?>
                     <div style="display: inline-block; position:relative; padding: 0; z-index: <?= $zIndex ?>;">
                         <img src="http://wizardawn.and-mag.com/maps/<?= $panel['image'] ?>">

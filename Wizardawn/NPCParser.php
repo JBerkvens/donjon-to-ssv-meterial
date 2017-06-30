@@ -355,7 +355,7 @@ class NPCParser extends Parser
     /**
      * @param array $npc
      */
-    public static function toWordPress(&$npc, $npcs)
+    public static function toWordPress(&$npc, $npcs = array())
     {
         $title   = $npc['name'];
         $content = $npc['description'];

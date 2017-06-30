@@ -18,6 +18,13 @@ class BuildingParser extends Parser
     private static $buildings = array();
     private $buildingsFromType = array();
 
+//    public static function parseRoyalty($basePart)
+//    {
+//        $parser = new BuildingParser();
+//        $parser->parseBase($basePart, 'royalty');
+//        $parser->parseNPCs();
+//    }
+
     /**
      * This function parses the Map and adds links to the modals.
      *

@@ -40,16 +40,32 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         if (isset($city['map'])) {
             MapParser::toWordPress($city['map'], $city['buildings'], $city['title']);
         }
+        if (isset($city['rulers'])) {
+            $city['buildings']['rulers'] = RulersParser::toWordPress($city['rulers'], $city['title']);
+        }
 
         $cityHTML = isset($city['map']) ? '[map-' . $city['map']['wp_id'] . ']' : '';
         $cityHTML .= '<ul class="collapsible" id="test" data-collapsible="expandable">';
+        $url      = Parser::URL . '/images/rulers.jpg';
+        $cityHTML .= '<li>';
+        $cityHTML .= '<div class="collapsible-header" style="line-height: initial; margin-top: 10px;">';
+        $cityHTML .= "<img src=\"$url\">";
+        $cityHTML .= '</div>';
+        $cityHTML .= '<div class="collapsible-body">';
+        $cityHTML .= '[building-content-' . $city['buildings']['rulers']['wp_id'] . ']';
+        $cityHTML .= '</div>';
+        $cityHTML .= '</li>';
         foreach (array('houses', 'merchants', 'guardhouses', 'churches', 'guilds') as $part) {
-            $buildingsHTML = '';
-            foreach ($city['buildings'] as $building) {
-                if ($building['type'] == $part) {
-                    $buildingsHTML .= '[building-link-' . $building['wp_id'] . ']';
+            $buildingsHTML = '<ul class="browser-default">';
+            if ($part == 'rulers') {
+            } else {
+                foreach ($city['buildings'] as $building) {
+                    if ($building['type'] == $part) {
+                        $buildingsHTML .= '<li>[building-link-' . $building['wp_id'] . ']</li>';
+                    }
                 }
             }
+            $buildingsHTML .= '</ul>';
             if (empty($buildingsHTML)) {
                 continue;
             }
