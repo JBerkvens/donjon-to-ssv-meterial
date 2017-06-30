@@ -42,14 +42,19 @@ class NPCParser extends Parser
             $this->parseBase($basePart);
         }
         foreach ($this->npcs as &$npc) {
-            $this->parseType($npc);
-            $this->parseName($npc);
-            $this->parsePhysique($npc);
-            $this->parseDescription($npc);
-            $this->parseClothing($npc);
-            $this->parsePossessions($npc);
+            $this->parseNPC($npc);
         }
         return $this->npcs;
+    }
+
+    private function parseNPC(&$npc)
+    {
+        $this->parseType($npc);
+        $this->parseName($npc);
+        $this->parsePhysique($npc);
+        $this->parseDescription($npc);
+        $this->parseClothing($npc);
+        $this->parsePossessions($npc);
     }
 
     /**
@@ -65,8 +70,18 @@ class NPCParser extends Parser
         foreach ($this->npcs as $npc) {
             $match = true;
             foreach ($args as $key => $value) {
-                if ($npc[$key] != $value) {
+                if (!key_exists($key, $npc)) {
                     $match = false;
+                } else {
+                    if (is_array($value)) {
+                        if (!in_array($npc[$key], $value)) {
+                            $match = false;
+                        }
+                    } else {
+                        if ($npc[$key] != $value) {
+                            $match = false;
+                        }
+                    }
                 }
             }
             if ($match) {
@@ -114,6 +129,7 @@ class NPCParser extends Parser
                     'id'          => $id,
                     'building_id' => $buildingID,
                     'html'        => $fontElement,
+                    'children'    => array(),
                 );
             }
         }
@@ -137,10 +153,20 @@ class NPCParser extends Parser
                 $type = 'owner';
                 break;
             case '--':
-                $type = 'spouse';
+                $type    = 'spouse';
+                $mainNPC = $this->getNPCs(array('building_id' => $npc['building_id'], 'type' => 'owner'))[0];
+                if (!empty($mainNPC)) {
+                    $mainNPC['spouse'] = $npc['id'];
+                    $this->updateNPC($mainNPC);
+                }
                 break;
             case '---':
-                $type = 'child';
+                $type    = 'child';
+                $mainNPC = $this->getNPCs(array('building_id' => $npc['building_id'], 'type' => 'owner'))[0];
+                if (!empty($mainNPC)) {
+                    $mainNPC['children'][] = $npc['id'];
+                    $this->updateNPC($mainNPC);
+                }
                 break;
         }
         $npc['type'] = $type;
@@ -270,17 +296,22 @@ class NPCParser extends Parser
         /** @var DOMElement $html */
         $html = $html->cloneNode(true);
         // Remove Merchant Specific Fields
-        while (strpos($html->ownerDocument->saveHTML($html->childNodes->item(1)), ':') === false) {
+        if (strpos($html->ownerDocument->saveHTML($html->childNodes->item(1)), ':') === false) {
+            while (strpos($html->ownerDocument->saveHTML($html->childNodes->item(1)), ':') === false) {
+                $html->removeChild($html->childNodes->item(1));
+            }
             $html->removeChild($html->childNodes->item(1));
         }
-        $html->removeChild($html->childNodes->item(1));
-        $id              = count($this->npcs);
-        $this->npcs[$id] = array(
+        $id  = count($this->npcs);
+        $npc = array(
             'id'          => $id,
             'building_id' => $buildingID,
             'html'        => $html,
+            'children'    => array(),
         );
-        return $this->parseNPCs()[$id];
+        $this->parseNPC($npc);
+        $this->npcs[$id] = $npc;
+        return $npc;
     }
 
     /**
@@ -298,6 +329,7 @@ class NPCParser extends Parser
         $level      = $info[1];
         $class      = str_replace(']', '', $info[2]);
         $profession = mp_to_title(strtolower(str_replace(':', '', $html->childNodes->item(0)->textContent)));
+        $profession = $profession == 'HGT' ? '' : $profession;
         $html->removeChild($html->childNodes->item(0));
 //        $foundNPC = self::getNPCs(array('building_id' => $buildingID, 'type' => $type, 'html' => $html));
         $id  = count($this->npcs);
@@ -323,10 +355,20 @@ class NPCParser extends Parser
     /**
      * @param array $npc
      */
-    public static function toWordPress(&$npc)
+    public static function toWordPress(&$npc, $npcs)
     {
         $title   = $npc['name'];
         $content = $npc['description'];
+        if (isset($npc['spouse'])) {
+            $npc['spouse'] = $npcs[$npc['spouse']]['wp_id'];
+        }
+        if (isset($npc['children'])) {
+            foreach ($npc['children'] as &$npcID) {
+                $npcID = $npcs[$npcID]['wp_id'];
+            }
+        } else {
+            $npc['children'] = array();
+        }
         /** @var \wpdb $wpdb */
         global $wpdb;
         $sql         = "SELECT p.ID FROM $wpdb->posts AS p";

@@ -107,6 +107,23 @@ class MapParser extends Parser
                     if (isset($building['wp_id'])) {
                         $buildingLabel['wp_id'] = $building['wp_id'];
                     }
+                    switch ($building['type']) {
+                        case 'merchants':
+                            $buildingLabel['color'] = '#6a1b9a';
+                            break;
+                        case 'guardhouses':
+                            $buildingLabel['color'] = '#1976d2';
+                            break;
+                        case 'churches':
+                            $buildingLabel['color'] = '#d50000';
+                            break;
+                        case 'guilds':
+                            $buildingLabel['color'] = '#1b5e20';
+                            break;
+                        default:
+                            $buildingLabel['color'] = 'rgba(0,0,0,0.75)';
+                            break;
+                    }
                 } else {
                     $buildingLabel['link'] = false;
                 }
@@ -138,11 +155,12 @@ class MapParser extends Parser
                             <div style="position:absolute; top:<?= $buildingLabel['top'] ?>px; left:<?= $buildingLabel['left'] ?>px;">
                                 <?php if ($buildingLabel['link']): ?>
                                     <?php $url = isset($buildingLabel['wp_id']) ? '[building-url-' . $buildingLabel['wp_id'] . ']' : '#modal' . $buildingLabel['id']; ?>
-                                    <a href="<?= $url ?>" style="color: #FFFFFF; background: rgba(0,0,0,0.75); height: 20px; width: 20px; text-align: center; display: block; border: 3px solid black; border-radius: 20%;">
+                                    <a href="<?= $url ?>"
+                                       style="color: #FFFFFF; background: rgba(0,0,0,0.6); height: 30px; width: 30px; text-align: center; display: block; border: 3px solid <?= $buildingLabel['color'] ?>; border-radius: 20%;font-size: 9px;line-height: 25px;">
                                         <?= $buildingLabel['id'] ?>
                                     </a>
                                 <?php else: ?>
-                                    <p style="color: #000000; background: rgba(255,255,255,0.75); height: 20px; width: 20px; text-align: center; display: block; border: 3px solid black; border-radius: 20%;">
+                                    <p style="color: #000000; background: #FFFFFF; height: 30px; width: 30px; text-align: center; display: block; border: 3px solid black; border-radius: 20%; margin: 0;font-size: 9px;line-height: 25px;">
                                         <?= $buildingLabel['id'] ?>
                                     </p>
                                 <?php endif; ?>
@@ -152,6 +170,15 @@ class MapParser extends Parser
                     <?php $zIndex--; ?>
                 <?php endforeach; ?>
             </div>
+        </div>
+        <div class="row">
+            <div class="col s12"><h2>Legend</h2></div>
+            <div class="col s6 m2" style="background-color: #000000; color: #FFFFFF;border: 3px solid black;">House</div>
+            <div class="col s6 m2" style="background-color: #6a1b9a; color: #FFFFFF;border: 3px solid black;">Merchant</div>
+            <div class="col s6 m2" style="background-color: #1976d2; color: #FFFFFF;border: 3px solid black;">Guardhouse</div>
+            <div class="col s6 m2" style="background-color: #d50000; color: #FFFFFF;border: 3px solid black;">Church</div>
+            <div class="col s6 m2" style="background-color: #1b5e20; color: #FFFFFF;border: 3px solid black;">Guild</div>
+            <div class="col s6 m2" style="background-color: #FFFFFF; color: #000000;border: 3px solid black;">[Empty]</div>
         </div>
         <?php
         return self::cleanCode(ob_get_clean());

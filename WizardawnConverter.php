@@ -37,13 +37,13 @@ abstract class WizardawnConverter extends Parser
                     break;
                 case 'npcs':
                     NPCParser::getParser()->parseNPCs($part);
-                    (new BuildingParser())->parseBuildings($part, 'houses');
+                    BuildingParser::parseBuildings($part, 'houses');
                     break;
                 case 'merchants':
                 case 'guardhouses':
                 case 'churches':
                 case 'guilds':
-                    $objects['buildings'] += (new BuildingParser())->parseBuildings($part, $key);
+                    BuildingParser::parseBuildings($part, $key);
                     break;
                 case 'banks':
                     mp_var_export('Banks aren\'t implemented yet.');
@@ -58,9 +58,8 @@ abstract class WizardawnConverter extends Parser
 
             $part = self::finalizePart($part);
         }
-        $objects['npcs'] = NPCParser::getParser()->getNPCs();
-        mp_var_export(BuildingParser::$houses);
-        mp_var_export($objects['buildings'], 1);
+        $objects['npcs']      = NPCParser::getParser()->getNPCs();
+        $objects['buildings'] = BuildingParser::getBuildings();
         return $objects;
     }
 

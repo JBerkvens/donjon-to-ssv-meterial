@@ -10,12 +10,13 @@ namespace ssv_material_parser;
 
 use DOMDocument;
 use DOMElement;
+use DOMNodeList;
 use DOMText;
 
 class BuildingParser extends Parser
 {
-    public static $houses = array();
-    private $buildings = array();
+    private static $buildings = array();
+    private $buildingsFromType = array();
 
     /**
      * This function parses the Map and adds links to the modals.
@@ -25,16 +26,35 @@ class BuildingParser extends Parser
      *
      * @return array of buildings
      */
-    public function parseBuildings($basePart, $type)
+    public static function parseBuildings($basePart, $type)
     {
-        $this->parseBase($basePart, $type);
-        $this->parseOwner();
-        $this->parseTable();
-        $this->parseNPCs();
+        $parser = new BuildingParser();
+        $parser->parseBase($basePart, $type);
+        $parser->parseOwner();
+        $parser->parseFamily();
+        $parser->parseTable();
+        $parser->parseNPCs();
         if ($type == 'houses') {
-            self::$houses = $this->buildings;
+            self::$buildings = $parser->buildingsFromType;
+        } else {
+            foreach ($parser->buildingsFromType as $building) {
+                if (isset(self::$buildings[$building['id']])) {
+                    self::$buildings[$building['id']] = array_merge(self::$buildings[$building['id']], $building);
+                    unset(self::$buildings[$building['id']]['html']);
+                }
+            }
         }
-        return $this->buildings;
+        return $parser->buildingsFromType;
+    }
+
+    /**
+     * This function returns all the buildings that have been parsed.
+     *
+     * @return array of all the buildings
+     */
+    public static function getBuildings()
+    {
+        return self::$buildings;
     }
 
     /**
@@ -43,7 +63,7 @@ class BuildingParser extends Parser
      * @param string $basePart
      * @param string $type of the building (merchant, church, etc.).
      */
-    protected function parseBase($basePart, $type)
+    private function parseBase($basePart, $type)
     {
         $parts = explode('<hr>', $basePart);
         foreach ($parts as $part) {
@@ -56,31 +76,30 @@ class BuildingParser extends Parser
             libxml_use_internal_errors(true);
             $file->loadHTML($part);
 
-            $fontElements = $file->getElementsByTagName('font');
-            $html         = $fontElements->item(1);
-            if ($html->childNodes->item(0)->textContent == '-This building is empty.') {
+            $html = $file->getElementsByTagName('font');
+            if ($html->item(1)->firstChild->textContent == '-This building is empty.') {
                 // This building is empty.
                 continue;
             }
-            $id                   = $fontElements->item(0)->firstChild->textContent;
-            $building['id']       = $id;
-            $building['html']     = $html;
-            $title                = $html->childNodes->item(1)->firstChild->textContent;
-            $building['title']    = mp_ends_with($title, ':') ? "Building $id" : $title;
-            $building['type']     = $type;
-            $building['info']     = trim(str_replace(array('[', ']'), '', $html->childNodes->item(2)->textContent));
-            $this->buildings[$id] = $building;
+            $id                           = $html->item(0)->firstChild->textContent;
+            $building['id']               = $id;
+            $building['html']             = $html;
+            $title                        = $html->item(1)->childNodes->item(1)->firstChild->textContent;
+            $building['title']            = mp_ends_with($title, ':') ? "Building $id" : $title;
+            $building['type']             = $type;
+            $building['info']             = trim(str_replace(array('[', ']'), '', $html->item(1)->childNodes->item(2)->textContent));
+            $this->buildingsFromType[$id] = $building;
         }
     }
 
     /**
      * This function updates all buildings and adds the owner.
      */
-    protected function parseOwner()
+    private function parseOwner()
     {
-        foreach ($this->buildings as &$building) {
+        foreach ($this->buildingsFromType as &$building) {
             /** @var DOMElement $html */
-            $html      = $building['html'];
+            $html      = $building['html']->item(1);
             $parser    = NPCParser::getParser();
             $foundNPCs = $parser->getNPCs(array('building_id' => $building['id'], 'type' => 'owner'));
             if (empty($foundNPCs)) {
@@ -88,19 +107,30 @@ class BuildingParser extends Parser
             }
             $owner               = $foundNPCs[0];
             $owner['profession'] = str_replace(':', '', $html->childNodes->item(3)->textContent);
+            $owner['profession'] = $owner['profession'] == 'HGT' ? '' : $owner['profession'];
+
             $parser->updateNPC($owner);
             $building['owner'] = $owner['id'];
+        }
+    }
+
+    private function parseFamily()
+    {
+        foreach ($this->buildingsFromType as &$building) {
+            $parser             = NPCParser::getParser();
+            $foundNPCs          = $parser->getNPCs(array('building_id' => $building['id'], 'type' => array('spouse', 'child')));
+            $building['family'] = array_column($foundNPCs, 'id');
         }
     }
 
     /**
      * This function parses the products table into an array and adding it to the building.
      */
-    protected function parseTable()
+    private function parseTable()
     {
-        foreach ($this->buildings as &$building) {
+        foreach ($this->buildingsFromType as &$building) {
             /** @var DOMElement $html */
-            $html  = $building['html'];
+            $html  = $building['html']->item(1);
             $table = $html->getElementsByTagName('tbody')->item(0);
             if ($table == null) {
                 return;
@@ -119,15 +149,14 @@ class BuildingParser extends Parser
     /**
      * This function parses the products table into an array and adding it to the building.
      */
-    protected function parseNPCs()
+    private function parseNPCs()
     {
-        foreach ($this->buildings as &$building) {
+        foreach ($this->buildingsFromType as &$building) {
             if (isset($building['products'])) {
                 continue; // Buildings with products are merchants and those don't have more NPCs than just the owner (and that one is already parsed).
             }
-            mp_var_export($building['html'], 1);
             /** @var DOMElement $html */
-            $html     = $building['html'];
+            $html     = $building['html']->item(1);
             $npcParts = $html->getElementsByTagName('font');
             for ($i = 0; $i < $npcParts->length; $i++) {
                 $npcPart = $npcParts->item($i);
@@ -146,7 +175,7 @@ class BuildingParser extends Parser
      * @param array      $building
      * @param DOMElement $html
      */
-    protected function parseSpell(&$building, $html)
+    private function parseSpell(&$building, $html)
     {
         $building['spells_cast_on'] = explode('.', $html->childNodes->item(0)->textContent)[0] . '.';
         for ($i = 1; $i < $html->childNodes->length; $i++) {
@@ -232,7 +261,11 @@ class BuildingParser extends Parser
     public static function toHTML($building)
     {
         ob_start();
-        echo '[npc-owner]';
+        if ($building['type'] == 'houses') {
+            echo '[npc-owner-with-family]';
+        } else {
+            echo '[npc-li-owner-with-family]';
+        }
         if (isset($building['npcs'])) {
             foreach ($building['npcs'] as $npcID) {
                 echo "[npc-$npcID]";

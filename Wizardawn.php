@@ -30,8 +30,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     $city = WizardawnConverter::Convert(file_get_contents($movedFile['file']));
     if ($type == 'mp_dd') {
+        $city['npcs'] = array_reverse($city['npcs'], true);
         foreach ($city['npcs'] as &$npc) {
-            NPCParser::toWordPress($npc);
+            NPCParser::toWordPress($npc, $city['npcs']);
         }
         foreach ($city['buildings'] as &$building) {
             BuildingParser::toWordPress($building, $city['npcs'], $city['title']);
