@@ -99,8 +99,26 @@ class MapParser extends Parser
      */
     public static function toWordPress(&$map, $buildings, $title)
     {
+        /** @var \wpdb $wpdb */
+        global $wpdb;
+        /** @var \WP_Post $foundMap */
+        $foundMap = $wpdb->get_row("SELECT p.ID FROM $wpdb->posts AS p WHERE p.post_type = 'map' AND p.post_title = '$title'");
+        if ($foundMap) {
+            $map['wp_id'] = $foundMap->ID;
+            return;
+        }
+
+        $width           = $map['width'];
+        $widthImageCount = ((($width - 100) - 300) / 300) + 2;
+        $xModifier       = 0;
+        $yModifier       = 0;
+        $xImage          = 1;
+        $yImage          = 1;
+        $buildingLabels  = array();
         foreach ($map['panels'] as &$panel) {
             foreach ($panel['building_labels'] as &$buildingLabel) {
+                $buildingLabel['left'] += $xModifier;
+                $buildingLabel['top']  += $yModifier;
                 if (isset($buildings[$buildingLabel['id']])) {
                     $buildingLabel['link'] = true;
                     $building              = $buildings[$buildingLabel['id']];
@@ -121,15 +139,35 @@ class MapParser extends Parser
                             $buildingLabel['color'] = '#1b5e20';
                             break;
                         default:
-                            $buildingLabel['color'] = 'rgba(0,0,0,0.75)';
+                            $buildingLabel['color'] = '#000000';
                             break;
                     }
                 } else {
-                    $buildingLabel['link'] = false;
+                    $buildingLabel['link']  = false;
+                    $buildingLabel['color'] = '#000000';
                 }
+                $buildingLabels[] = $buildingLabel;
+            }
+
+            if ($xImage == 1) {
+                $xModifier += 150;
+            } else {
+                $xModifier += 300;
+            }
+
+            $xImage++;
+            if ($xImage > $widthImageCount) {
+                $xModifier = 0;
+                $xImage    = 1;
+                if ($yImage == 1) {
+                    $yModifier += 150;
+                } else {
+                    $yModifier += 300;
+                }
+                $yImage++;
             }
         }
-        $postID       = wp_insert_post(
+        $postID = wp_insert_post(
             array(
                 'post_title'   => $title,
                 'post_content' => self::toHTML($map),
@@ -137,6 +175,7 @@ class MapParser extends Parser
                 'post_status'  => 'publish',
             )
         );
+        update_post_meta($postID, 'building_labels', $buildingLabels);
         $map['wp_id'] = $postID;
     }
 
@@ -147,28 +186,14 @@ class MapParser extends Parser
         ob_start();
         ?>
         <div style="overflow-x: auto; overflow-y: hidden;">
-            <div style="width: <?= $width ?>px; margin: auto;">
+            <div id="map" style="width: <?= $width ?>px; margin: auto; position: relative">
                 <?php foreach ($map['panels'] as $panel): ?>
                     <div style="display: inline-block; position:relative; padding: 0; z-index: <?= $zIndex ?>;">
                         <img src="http://wizardawn.and-mag.com/maps/<?= $panel['image'] ?>">
-                        <?php foreach ($panel['building_labels'] as $buildingLabel): ?>
-                            <div style="position:absolute; top:<?= $buildingLabel['top'] ?>px; left:<?= $buildingLabel['left'] ?>px;">
-                                <?php if ($buildingLabel['link']): ?>
-                                    <?php $url = isset($buildingLabel['wp_id']) ? '[building-url-' . $buildingLabel['wp_id'] . ']' : '#modal' . $buildingLabel['id']; ?>
-                                    <a href="<?= $url ?>"
-                                       style="color: #FFFFFF; background: rgba(0,0,0,0.6); height: 30px; width: 30px; text-align: center; display: block; border: 3px solid <?= $buildingLabel['color'] ?>; border-radius: 20%;font-size: 9px;line-height: 25px;">
-                                        <?= $buildingLabel['id'] ?>
-                                    </a>
-                                <?php else: ?>
-                                    <p style="color: #000000; background: #FFFFFF; height: 30px; width: 30px; text-align: center; display: block; border: 3px solid black; border-radius: 20%; margin: 0;font-size: 9px;line-height: 25px;">
-                                        <?= $buildingLabel['id'] ?>
-                                    </p>
-                                <?php endif; ?>
-                            </div>
-                        <?php endforeach; ?>
                     </div>
                     <?php $zIndex--; ?>
                 <?php endforeach; ?>
+                [building-labels]
             </div>
         </div>
         <div class="row">
