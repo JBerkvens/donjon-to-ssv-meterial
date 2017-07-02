@@ -57,7 +57,19 @@ class RulersParser extends Parser
         $rulersBuilding['city'] = $city;
         $buildingType           = 'Rulers';
         $rulersBuilding['type'] = $buildingType;
-        $buildingTypeTerm       = term_exists($buildingType, 'building_category', 0);
+        $buildingTitle          = $city . ' Rulers';
+
+        /** @var \wpdb $wpdb */
+        global $wpdb;
+        $sql = "SELECT ID FROM $wpdb->posts WHERE post_title = '$buildingTitle'";
+        /** @var \WP_Post $foundBuilding */
+        $foundBuilding = $wpdb->get_row($sql);
+        if ($foundBuilding) {
+            $building['wp_id'] = $foundBuilding->ID;
+            return $building;
+        }
+
+        $buildingTypeTerm = term_exists($buildingType, 'building_category', 0);
         if (!$buildingTypeTerm) {
             $buildingTypeTerm = wp_insert_term($buildingType, 'building_category', array('parent' => 0));
         }
@@ -70,7 +82,7 @@ class RulersParser extends Parser
 
         $postID = wp_insert_post(
             array(
-                'post_title'   => $city . ' Rulers',
+                'post_title'   => $buildingTitle,
                 'post_content' => self::toHTML($rulersBuilding),
                 'post_type'    => 'building',
                 'post_status'  => 'publish',

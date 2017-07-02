@@ -96,6 +96,8 @@ class MapParser extends Parser
      * @param array   $map
      * @param array[] $buildings
      * @param string  $title
+     *
+     * @return int postID
      */
     public static function toWordPress(&$map, $buildings, $title)
     {
@@ -105,7 +107,7 @@ class MapParser extends Parser
         $foundMap = $wpdb->get_row("SELECT p.ID FROM $wpdb->posts AS p WHERE p.post_type = 'map' AND p.post_title = '$title'");
         if ($foundMap) {
             $map['wp_id'] = $foundMap->ID;
-            return;
+            return $foundMap->ID;
         }
 
         $width           = $map['width'];
@@ -117,11 +119,11 @@ class MapParser extends Parser
         $buildingLabels  = array();
         foreach ($map['panels'] as &$panel) {
             foreach ($panel['building_labels'] as &$buildingLabel) {
-                $buildingLabel['left'] += $xModifier;
-                $buildingLabel['top']  += $yModifier;
                 if (isset($buildings[$buildingLabel['id']])) {
-                    $buildingLabel['link'] = true;
-                    $building              = $buildings[$buildingLabel['id']];
+                    $building                 = $buildings[$buildingLabel['id']];
+                    $buildingLabel['left']    += $xModifier;
+                    $buildingLabel['top']     += $yModifier;
+                    $buildingLabel['showing'] = true;
                     if (isset($building['wp_id'])) {
                         $buildingLabel['wp_id'] = $building['wp_id'];
                     }
@@ -142,11 +144,15 @@ class MapParser extends Parser
                             $buildingLabel['color'] = '#000000';
                             break;
                     }
-                } else {
-                    $buildingLabel['link']  = false;
-                    $buildingLabel['color'] = '#000000';
+                    $buildingLabels[] = array(
+                        'id'      => $buildingLabel['wp_id'],
+                        'color'   => $buildingLabel['color'],
+                        'showing' => $buildingLabel['showing'],
+                        'label'   => $buildingLabel['id'],
+                        'top'     => $buildingLabel['top'],
+                        'left'    => $buildingLabel['left'],
+                    );
                 }
-                $buildingLabels[] = $buildingLabel;
             }
 
             if ($xImage == 1) {
@@ -177,6 +183,7 @@ class MapParser extends Parser
         );
         update_post_meta($postID, 'building_labels', $buildingLabels);
         $map['wp_id'] = $postID;
+        return $postID;
     }
 
     private static function toHTML($map)
@@ -203,7 +210,6 @@ class MapParser extends Parser
             <div class="col s6 m2" style="background-color: #1976d2; color: #FFFFFF;border: 3px solid black;">Guardhouse</div>
             <div class="col s6 m2" style="background-color: #d50000; color: #FFFFFF;border: 3px solid black;">Church</div>
             <div class="col s6 m2" style="background-color: #1b5e20; color: #FFFFFF;border: 3px solid black;">Guild</div>
-            <div class="col s6 m2" style="background-color: #FFFFFF; color: #000000;border: 3px solid black;">[Empty]</div>
         </div>
         <?php
         return self::cleanCode(ob_get_clean());

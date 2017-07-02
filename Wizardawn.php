@@ -39,17 +39,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             BuildingParser::toWordPress($building, $city['npcs'], $title);
         }
         if (isset($city['map'])) {
-            MapParser::toWordPress($city['map'], $city['buildings'], $title);
+            $mapID = MapParser::toWordPress($city['map'], $city['buildings'], $title);
         }
         if (isset($city['rulers'])) {
             $city['buildings']['rulers'] = RulersParser::toWordPress($city['rulers'], $title);
         }
         /** @var \wpdb $wpdb */
         global $wpdb;
-        /** @var \WP_Post $foundMap */
-        $foundMap = $wpdb->get_row("SELECT p.ID FROM $wpdb->posts AS p WHERE p.post_type = 'city' AND p.post_title = '$title'");
-        if ($foundMap) {
-            $map['wp_id'] = $foundMap->ID;
+        /** @var \WP_Post $foundCity */
+        $foundCity = $wpdb->get_row("SELECT p.ID FROM $wpdb->posts AS p WHERE p.post_type = 'city' AND p.post_title = '$title'");
+        if ($foundCity) {
+            $map['wp_id'] = $foundCity->ID;
         } else {
             $cityHTML = isset($city['map']) ? '[map-' . $city['map']['wp_id'] . ']' : '';
             $cityHTML .= '<ul class="collapsible" id="test" data-collapsible="expandable">';
@@ -64,10 +64,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $cityHTML .= '</li>';
             foreach (array('houses', 'merchants', 'guardhouses', 'churches', 'guilds') as $part) {
                 $buildingsHTML = '<ul class="browser-default">';
-                if ($part == 'rulers') {
-                } else {
-                    foreach ($city['buildings'] as $building) {
-                        if ($building['type'] == $part) {
+                foreach ($city['buildings'] as $building) {
+                    if ($building['type'] == $part) {
+                        if ($part == 'merchants') {
+                            $buildingsHTML .= '<li>[building-link-with-type-' . $building['wp_id'] . ']</li>';
+                        } else {
                             $buildingsHTML .= '<li>[building-link-' . $building['wp_id'] . ']</li>';
                         }
                     }
@@ -87,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $cityHTML .= '</div>';
                 $cityHTML .= '</li>';
             }
-            wp_insert_post(
+            $cityID = wp_insert_post(
                 array(
                     'post_title'   => $title,
                     'post_content' => $cityHTML,
@@ -95,6 +96,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     'post_status'  => 'publish',
                 )
             );
+            if (isset($mapID)) {
+                update_post_meta($mapID, 'visible_cities', array($cityID));
+            }
+            foreach ($city['buildings'] as &$building) {
+                update_post_meta($building['wp_id'], 'city', $cityID);
+            }
         }
     } else {
         ?>
