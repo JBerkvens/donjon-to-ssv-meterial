@@ -4,6 +4,7 @@ namespace ssv_material_parser;
 
 use \DOMDocument;
 
+require_once "Models/NPC.php";
 require_once "Wizardawn/MapParser.php";
 require_once "Wizardawn/NPCParser.php";
 require_once "Wizardawn/RulersParser.php";

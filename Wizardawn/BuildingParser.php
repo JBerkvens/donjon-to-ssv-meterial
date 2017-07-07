@@ -113,11 +113,11 @@ class BuildingParser extends Parser
                 $foundNPCs = array($parser->parseOwner($html, $building['id']));
             }
             $owner               = $foundNPCs[0];
-            $owner['profession'] = str_replace(':', '', $html->childNodes->item(3)->textContent);
-            $owner['profession'] = $owner['profession'] == 'HGT' ? '' : $owner['profession'];
+            $owner->profession = str_replace(':', '', $html->childNodes->item(3)->textContent);
+            $owner->profession = $owner->profession == 'HGT' ? '' : $owner->profession;
 
             $parser->updateNPC($owner);
-            $building['owner'] = $owner['id'];
+            $building['owner'] = $owner->id;
         }
     }
 
@@ -173,7 +173,7 @@ class BuildingParser extends Parser
                 }
                 $parser             = NPCParser::getParser();
                 $npc                = $parser->parseBuildingNPC($npcPart, $building['id'], $building['type']);
-                $building['npcs'][] = $npc['id'];
+                $building['npcs'][] = $npc->id;
             }
         }
     }

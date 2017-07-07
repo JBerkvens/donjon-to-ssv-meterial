@@ -30,24 +30,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     $city = WizardawnConverter::Convert(file_get_contents($movedFile['file']));
     if ($type == 'mp_dd') {
+        /**
+         * @var int $npcID
+         * @var NPC $npc
+         */
         foreach ($city['npcs'] as $npcID => $npc) {
-            ?>
-            <table style="position: relative; display: inline-block; border: 1px solid black; margin-right: 4px;">
-                <tbody>
-                <?php foreach ($npc as $key => $value): ?>
-                    <?php if (!is_string($value) && !is_numeric($value)): ?>
-                        <?php continue; ?>
-                    <?php endif; ?>
-                    <tr>
-                        <td><label><?= $key ?></label></td>
-                        <td>
-                            <input type="text" name="<?= $npcID . '___' . $key ?>" value="<?= $value ?>" title="<?= $key ?>">
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-                </tbody>
-            </table>
-            <?php
+            echo $npc->getHTML();
         }
         return;
 
