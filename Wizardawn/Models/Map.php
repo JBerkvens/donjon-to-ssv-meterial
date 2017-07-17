@@ -1,123 +1,47 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: moridrin
- * Date: 26-6-17
- * Time: 20:58
- */
 
-namespace ssv_material_parser;
+namespace Wizardawn\Models;
 
-use DOMDocument;
-use DOMElement;
-use DOMNodeList;
-use DOMText;
-
-class MapParser extends Parser
+class Map
 {
-    private $map = array('width' => 0, 'panels' => array());
-    private static $parser;
+    private $panels = [];
+    private $width = 500;
+    private $wp_id = null;
 
-    private function __construct()
+    public function addPanel($panel)
     {
+        $this->panels[] = $panel;
     }
 
-    public static function getParser()
+    public function setWidth($width)
     {
-        if (self::$parser == null) {
-            self::$parser = new MapParser();
-        }
-        return self::$parser;
-    }
-
-    /**
-     * This function parses the Map and adds links to the modals.
-     *
-     * @param string $basePart
-     *
-     * @return array
-     */
-    public function parseMap($basePart)
-    {
-        $part = $this->cleanCode($basePart);
-        $file = new DOMDocument();
-        libxml_use_internal_errors(true);
-        $file->loadHTML($part);
-
-        $map   = $file->getElementById('myMap');
-        $width = $map->getAttribute("style");
-        preg_match('/width: (.*?)px/', $width, $width);
-        $this->map['width'] = ($width[1] - 5) + 100;
-        for ($i = 0; $i < $map->childNodes->length; $i++) {
-            $panelElement = $map->childNodes->item($i);
-            if ($panelElement instanceof DOMElement) {
-                $this->map['panels'][] = $this->parsePanel($panelElement);
-            }
-        }
-
-        return $this->map;
+        $this->width = $width;
     }
 
     /**
-     * @param DOMElement $panelElement
-     *
-     * @return array panel
-     */
-    private function parsePanel($panelElement)
-    {
-        $panel = array(
-            'image'           => '',
-            'building_labels' => array(),
-        );
-        /** @var DOMNodeList $elements */
-        $elements = $panelElement->getElementsByTagName('div');
-        $image    = $panelElement->getElementsByTagName('img')->item(0);
-        preg_match('/\/[\s\S]+?\/([\s\S]+?)"/', $image->ownerDocument->saveHTML($image), $image);
-        $panel['image'] = $image[1];
-
-        for ($i = 0; $i < $elements->length; $i++) {
-            $panelBuilding       = $elements->item($i);
-            $panelBuildingNumber = $panelBuilding->childNodes->item(0);
-            if ($panelBuildingNumber instanceof DOMText) {
-                $style = $panelBuilding->getAttribute("style");
-                preg_match("/top:([0-9]+)px/", $style, $top);
-                preg_match("/left:([0-9]+)px/", $style, $left);
-                $panel['building_labels'][] = array(
-                    'top'  => $top[1],
-                    'left' => $left[1],
-                    'id'   => $panelBuildingNumber->ownerDocument->saveHTML($panelBuildingNumber),
-                );
-            }
-        }
-        return $panel;
-    }
-
-    /**
-     * @param array   $map
      * @param array[] $buildings
      * @param string  $title
      *
      * @return int postID
      */
-    public static function toWordPress(&$map, $buildings, $title)
+    public function toWordPress($buildings, $title)
     {
         /** @var \wpdb $wpdb */
         global $wpdb;
         /** @var \WP_Post $foundMap */
         $foundMap = $wpdb->get_row("SELECT p.ID FROM $wpdb->posts AS p WHERE p.post_type = 'map' AND p.post_title = '$title'");
         if ($foundMap) {
-            $map['wp_id'] = $foundMap->ID;
-            return $foundMap->ID;
+            $this->wp_id = $foundMap->ID;
+            return $this->wp_id;
         }
 
-        $width           = $map['width'];
-        $widthImageCount = ((($width - 100) - 300) / 300) + 2;
+        $widthImageCount = ((($this->width - 100) - 300) / 300) + 2;
         $xModifier       = 0;
         $yModifier       = 0;
         $xImage          = 1;
         $yImage          = 1;
         $buildingLabels  = array();
-        foreach ($map['panels'] as &$panel) {
+        foreach ($this->panels as &$panel) {
             foreach ($panel['building_labels'] as &$buildingLabel) {
                 if (isset($buildings[$buildingLabel['id']])) {
                     $building                 = $buildings[$buildingLabel['id']];
@@ -176,7 +100,7 @@ class MapParser extends Parser
         $postID = wp_insert_post(
             array(
                 'post_title'   => $title,
-                'post_content' => self::toHTML($map),
+                'post_content' => $this->toHTML(),
                 'post_type'    => 'map',
                 'post_status'  => 'publish',
             )
@@ -186,19 +110,18 @@ class MapParser extends Parser
         return $postID;
     }
 
-    private static function toHTML($map)
+    private function toHTML() //TODO Fix it so that the images are joined into one and uploaded. @see https://diceattack.wordpress.com/2011/01/03/combining-multiple-images-using-php-and-gd/
     {
-        $width  = $map['width'];
-        $zIndex = count($map['panels']);
+        $zIndex = count($this->panels);
         ob_start();
         ?>
         <div style="overflow-x: auto; overflow-y: hidden;">
-            <div id="map" style="width: <?= $width ?>px; margin: auto; position: relative">
-                <?php foreach ($map['panels'] as $panel): ?>
+            <div id="map" style="width: <?= $this->width ?>px; margin: auto; position: relative">
+                <?php foreach ($this->panels as $panel): ?>
                     <div style="display: inline-block; position:relative; padding: 0; z-index: <?= $zIndex ?>;">
                         <img src="http://wizardawn.and-mag.com/maps/<?= $panel['image'] ?>">
                     </div>
-                    <?php $zIndex--; ?>
+                    <?php --$zIndex; ?>
                 <?php endforeach; ?>
                 [building-labels]
             </div>

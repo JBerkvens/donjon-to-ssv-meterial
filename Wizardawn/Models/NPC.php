@@ -12,7 +12,6 @@ class NPC
 {
     public $id;
     public $wp_id;
-    public $building_id;
     public $html = '';
     public $spouse = null;
     public $children = array();
@@ -48,6 +47,7 @@ class NPC
                         <option value="true">Yes</option>
                         <option value="false">No</option>
                     </select>
+                    <button type="submit" name="save_single" value="<?= $this->id ?>">Save</button>
                 </td>
             </tr>
             <tr>
@@ -149,23 +149,26 @@ class NPC
     public static function getFromPOST($index)
     {
         $fields = array(
-            'npc___spouse',
-            'npc___children',
-            'npc___type',
-            'npc___profession',
-            'npc___level',
-            'npc___class',
-            'npc___name',
-            'npc___height',
-            'npc___weight',
-            'npc___description',
-            'npc___clothing',
-            'npc___possessions',
-            'npc___arms_armor',
+            'spouse',
+            'children',
+            'type',
+            'profession',
+            'level',
+            'class',
+            'name',
+            'height',
+            'weight',
+            'description',
+            'clothing',
+            'possessions',
+            'arms_armor',
         );
         $npc = new self($_POST['npc___id'][$index], $_POST['npc___building_id'][$index], null);
         foreach ($fields as $field) {
-            $npc->$field = $_POST[$field][$index];
+            $value = $_POST['npc___'.$field][$index];
+            if (!empty($_POST['npc___'.$field][$index])) {
+                $npc->$field = $value;
+            }
         }
         return $npc;
     }

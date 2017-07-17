@@ -30,7 +30,7 @@ function ssv_material_parser_settings_page()
         <?php
         switch ($active_tab) {
             case "wizardawn":
-                require_once "Wizardawn.php";
+                require_once "Wizardawn/Wizardawn.php";
                 break;
             case "donjon":
                 require_once "Donjon.php";
