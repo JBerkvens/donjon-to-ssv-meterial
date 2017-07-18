@@ -6,10 +6,10 @@ use \DOMDocument;
 use simple_html_dom;
 use Wizardawn\Models\City;
 
-require_once "Models/MapParser.php";
-require_once "Models/NPCParser.php";
-require_once "Models/RulersParser.php";
-require_once "Models/BuildingParser.php";
+require_once "Parsers/MapParser.php";
+require_once "Parsers/NPCParser.php";
+require_once "Parsers/RulersParser.php";
+require_once "Parsers/BuildingParser.php";
 
 /**
  * Created by PhpStorm.
@@ -30,12 +30,12 @@ abstract class Converter extends Parser
     {
         $content = self::cleanCode($content);
         $content = self::bugFixes($content);
-        $html = new simple_html_dom();
-        $html->load($content);
+        $html = str_get_html($content);
 
         $city = new City();
         $city->setTitle($html->getElementByTagName('font')->text());
         $city->setMap(MapParser::parseMap($html));
+
 
 
         mp_var_export($city, true);

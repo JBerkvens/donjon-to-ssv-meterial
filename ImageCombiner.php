@@ -1,4 +1,5 @@
 <?php
+use ssv_material_parser\Parser;
 
 /**
  * Created by PhpStorm.
@@ -45,7 +46,7 @@ class ImageCombiner
             imagedestroy($image['image']);
         }
 
-        imagepng($mapImage, __DIR__ . '/tmp.png');
-        return __DIR__ . '/tmp.png';
+        imagepng($mapImage, Parser::PATH . 'tmp.png');
+        return Parser::URL . 'tmp.png';
     }
 }

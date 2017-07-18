@@ -33,7 +33,6 @@ class MapParser extends Parser
      */
     public static function parseMap(simple_html_dom $body): Map
     {
-        /** @var simple_html_dom_node $html */
         $html = $body->getElementById('myMap');
         if ($html === null) {
             return null;
@@ -44,10 +43,8 @@ class MapParser extends Parser
         $mapWidth = ($width[1] - 5) + 100;
         $map->setWidth($mapWidth);
         $srcImagePaths = [];
-        /** @var simple_html_dom_node $panelElement */
         foreach ($html->children() as $panelElement) {
             self::parsePanel($map, $panelElement);
-            /** @var simple_html_dom_node $image */
             $image    = $panelElement->getElementByTagName('img');
             preg_match('/\/[\s\S]+?\/([\s\S]+?)"/', (string)$image, $image);
             $srcImagePaths[] = 'http://wizardawn.and-mag.com/maps/'.$image[1];
