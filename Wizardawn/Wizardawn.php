@@ -3,6 +3,12 @@
 namespace ssv_material_parser;
 
 require_once 'Converter.php';
+require_once "Models/City.php";
+require_once "Models/NPC.php";
+require_once "Models/Map.php";
+require_once "Models/MapPanel.php";
+require_once "Models/MapLabel.php";
+require_once "Models/NPC.php";
 
 if ($_SERVER['REQUEST_METHOD'] != 'POST') {
     ?>

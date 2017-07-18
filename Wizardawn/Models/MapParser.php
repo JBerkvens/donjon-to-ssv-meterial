@@ -15,6 +15,8 @@ use DOMText;
 use simple_html_dom;
 use simple_html_dom_node;
 use Wizardawn\Models\Map;
+use Wizardawn\Models\MapLabel;
+use Wizardawn\Models\MapPanel;
 
 class MapParser extends Parser
 {
@@ -29,56 +31,52 @@ class MapParser extends Parser
      *
      * @return Map
      */
-    public static function parseMap(simple_html_dom $body)
+    public static function parseMap(simple_html_dom $body): Map
     {
         /** @var simple_html_dom_node $html */
-        $html   = $body->getElementById('myMap');
+        $html = $body->getElementById('myMap');
         if ($html === null) {
             return null;
         }
-        $map = new Map();
+        $map   = new Map();
         $width = $html->getAttribute("style");
         preg_match('/width: (.*?)px/', $width, $width);
-        $map->setWidth(($width[1] - 5) + 100);
-        /** @var simple_html_dom_node $childNode */
+        $mapWidth = ($width[1] - 5) + 100;
+        $map->setWidth($mapWidth);
+        $srcImagePaths = [];
+        /** @var simple_html_dom_node $panelElement */
         foreach ($html->children() as $panelElement) {
-            $map->addPanel(self::parsePanel($panelElement));
+            self::parsePanel($map, $panelElement);
+            /** @var simple_html_dom_node $image */
+            $image    = $panelElement->getElementByTagName('img');
+            preg_match('/\/[\s\S]+?\/([\s\S]+?)"/', (string)$image, $image);
+            $srcImagePaths[] = 'http://wizardawn.and-mag.com/maps/'.$image[1];
         }
+        $map->setImage(\ImageCombiner::convertToSingle($srcImagePaths, $mapWidth - 100));
 
         return $map;
     }
 
-    /**
-     * @param DOMElement $panelElement
-     *
-     * @return array panel
-     */
-    private static function parsePanel($panelElement)
+    private static function parsePanel(Map &$map, simple_html_dom_node $panelElement)
     {
-        $panel = array(
-            'image'           => '',
-            'building_labels' => array(),
-        );
-        /** @var DOMNodeList $elements */
-        $elements = $panelElement->getElementsByTagName('div');
-        $image    = $panelElement->getElementsByTagName('img')->item(0);
-        preg_match('/\/[\s\S]+?\/([\s\S]+?)"/', $image->ownerDocument->saveHTML($image), $image);
-        $panel['image'] = $image[1];
+        $style = $panelElement->getAttribute("style");
+        preg_match("/top:([0-9]+)px/", $style, $topTranslation);
+        $topTranslation = $topTranslation[1] - 10;
+        preg_match("/left:([0-9]+)px/", $style, $leftTranslation);
+        $leftTranslation = $leftTranslation[1] - 10;
 
-        for ($i = 0; $i < $elements->length; $i++) {
-            $panelBuilding       = $elements->item($i);
-            $panelBuildingNumber = $panelBuilding->childNodes->item(0);
-            if ($panelBuildingNumber instanceof DOMText) {
+        /** @var simple_html_dom_node[] $elements */
+        $elements = $panelElement->getElementsByTagName('div');
+
+        /** @var simple_html_dom_node $panelBuilding */
+        foreach ($elements as $panelBuilding) {
+            $panelBuildingNumber = $panelBuilding->text();
+            if (is_numeric($panelBuildingNumber)) {
                 $style = $panelBuilding->getAttribute("style");
                 preg_match("/top:([0-9]+)px/", $style, $top);
                 preg_match("/left:([0-9]+)px/", $style, $left);
-                $panel['building_labels'][] = array(
-                    'top'  => $top[1],
-                    'left' => $left[1],
-                    'id'   => $panelBuildingNumber->ownerDocument->saveHTML($panelBuildingNumber),
-                );
+                $map->addLabel(new MapLabel((string)$panelBuildingNumber, $left[1] + $leftTranslation, $top[1] + $topTranslation));
             }
         }
-        return $panel;
     }
 }

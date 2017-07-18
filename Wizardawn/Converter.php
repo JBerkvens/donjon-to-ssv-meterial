@@ -6,9 +6,7 @@ use \DOMDocument;
 use simple_html_dom;
 use Wizardawn\Models\City;
 
-require_once "Models/City.php";
 require_once "Models/MapParser.php";
-require_once "Models/NPC.php";
 require_once "Models/NPCParser.php";
 require_once "Models/RulersParser.php";
 require_once "Models/BuildingParser.php";

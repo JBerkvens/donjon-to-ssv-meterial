@@ -29,6 +29,7 @@ define('SSV_MATERIAL_PARSER_URL', plugins_url() . '/ssv-material-parser/');
 require_once 'functions.php';
 require_once 'admin-page.php';
 require_once 'include/simple_html_dom.php';
+require_once 'ImageCombiner.php';
 #endregion
 
 #region SSV_Users class

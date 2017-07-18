@@ -4,18 +4,25 @@ namespace Wizardawn\Models;
 
 class Map
 {
-    private $panels = [];
+    /** @var MapLabel[] */
+    private $labels = [];
     private $width = 500;
+    private $image = null;
     private $wp_id = null;
 
-    public function addPanel($panel)
+    public function addLabel(MapLabel $label)
     {
-        $this->panels[] = $panel;
+        $this->labels[$label->getID()] = $label;
     }
 
-    public function setWidth($width)
+    public function setWidth(int $width)
     {
         $this->width = $width;
+    }
+
+    public function setImage(string $image)
+    {
+        $this->image = $image;
     }
 
     /**
@@ -41,8 +48,8 @@ class Map
         $xImage          = 1;
         $yImage          = 1;
         $buildingLabels  = array();
-        foreach ($this->panels as &$panel) {
-            foreach ($panel['building_labels'] as &$buildingLabel) {
+        foreach ($this->labels as &$panel) {
+            foreach ($panel['building_labels'] as &$buildingLabel) { //TODO BuildingLabels to Visible Objects
                 if (isset($buildings[$buildingLabel['id']])) {
                     $building                 = $buildings[$buildingLabel['id']];
                     $buildingLabel['left']    += $xModifier;
@@ -112,12 +119,12 @@ class Map
 
     private function toHTML() //TODO Fix it so that the images are joined into one and uploaded. @see https://diceattack.wordpress.com/2011/01/03/combining-multiple-images-using-php-and-gd/
     {
-        $zIndex = count($this->panels);
+        $zIndex = count($this->labels);
         ob_start();
         ?>
         <div style="overflow-x: auto; overflow-y: hidden;">
             <div id="map" style="width: <?= $this->width ?>px; margin: auto; position: relative">
-                <?php foreach ($this->panels as $panel): ?>
+                <?php foreach ($this->labels as $panel): ?>
                     <div style="display: inline-block; position:relative; padding: 0; z-index: <?= $zIndex ?>;">
                         <img src="http://wizardawn.and-mag.com/maps/<?= $panel['image'] ?>">
                     </div>
@@ -135,6 +142,6 @@ class Map
             <div class="col s6 m2" style="background-color: #1b5e20; color: #FFFFFF;border: 3px solid black;">Guild</div>
         </div>
         <?php
-        return self::cleanCode(ob_get_clean());
+        return ob_get_clean();
     }
 }
