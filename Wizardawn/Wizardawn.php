@@ -8,10 +8,10 @@ require_once "Models/NPC.php";
 require_once "Models/Map.php";
 require_once "Models/MapPanel.php";
 require_once "Models/MapLabel.php";
+require_once "Models/Building.php";
 require_once "Models/NPC.php";
 
-if ($_SERVER['REQUEST_METHOD'] != 'POST') {
-    ?>
+?>
     <form action="#" method="post" enctype="multipart/form-data">
         <input type="file" name="html_file"><br/>
         <select name="parse_output">
@@ -19,21 +19,28 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
             <option value="html">HTML</option>
         </select><br/>
         <input type="submit" value="Upload" name="submit">
+        <input type="submit" value="Test" name="submit">
     </form>
     <?php
+if ($_SERVER['REQUEST_METHOD'] != 'POST') {
 } elseif (isset($_POST['parse_output'])) {
     $type = $_POST['parse_output'];
-    if (!function_exists('wp_handle_upload')) {
-        require_once(ABSPATH.'wp-admin/includes/file.php');
+    if ($_POST['submit'] == 'Test') {
+        $fileContent = file_get_html(Parser::URL.'test/001.html');
+    } else {
+        if (!function_exists('wp_handle_upload')) {
+            require_once(ABSPATH.'wp-admin/includes/file.php');
+        }
+        $uploadedFile    = $_FILES['html_file'];
+        $uploadOverrides = array('test_form' => false);
+        $movedFile       = wp_handle_upload($uploadedFile, $uploadOverrides);
+        if (!$movedFile || isset($movedFile['error']) || $movedFile['type'] != 'text/html') {
+            echo $movedFile['error'];
+            return;
+        }
+        $fileContent = file_get_html($movedFile['file']);
     }
-    $uploadedFile    = $_FILES['html_file'];
-    $uploadOverrides = array('test_form' => false);
-    $movedFile       = wp_handle_upload($uploadedFile, $uploadOverrides);
-    if (!$movedFile || isset($movedFile['error']) || $movedFile['type'] != 'text/html') {
-        echo $movedFile['error'];
-        return;
-    }
-    $city = Converter::Convert(file_get_html($movedFile['file']));
+    $city = Converter::Convert($fileContent);
     if ($type == 'mp_dd') {
         /**
          * @var int $npcID

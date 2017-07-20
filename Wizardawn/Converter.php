@@ -33,10 +33,10 @@ abstract class Converter extends Parser
         $html = str_get_html($content);
 
         $city = new City();
-        $city->setTitle($html->getElementByTagName('font')->text());
-        $city->setMap(MapParser::parseMap($html));
+//        $city->setTitle($html->getElementByTagName('font')->text());
+//        $city->setMap(MapParser::parseMap($html));
 
-
+        BuildingParser::parseBuildings($city, $html);
 
         mp_var_export($city, true);
 

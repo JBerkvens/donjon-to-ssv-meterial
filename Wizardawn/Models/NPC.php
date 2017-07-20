@@ -10,9 +10,7 @@ namespace ssv_material_parser;
 
 class NPC
 {
-    public $id;
     public $wp_id;
-    public $html = '';
     public $spouse = null;
     public $children = array();
     public $type = 'citizen';
@@ -27,15 +25,9 @@ class NPC
     public $possessions = '';
     public $arms_armor = '';
 
-    public function __construct($id, $buildingID, $html)
-    {
-        $this->id          = $id;
-        $this->building_id = $buildingID;
-        $this->html        = $html;
-    }
-
     public function getHTML()
     {
+        $id = uniqid('npc');
         ob_start();
         ?>
         <table style="position: relative; display: inline-block; border: 1px solid black; margin-right: 4px;">
@@ -43,101 +35,89 @@ class NPC
             <tr>
                 <td><label>Save</label></td>
                 <td>
-                    <select name="npc___save[]" title="Save">
+                    <select name="npc___save[<?= $id ?>]" title="Save">
                         <option value="true">Yes</option>
                         <option value="false">No</option>
                     </select>
-                    <button type="submit" name="save_single" value="<?= $this->id ?>">Save</button>
-                </td>
-            </tr>
-            <tr>
-                <td><label>id</label></td>
-                <td>
-                    <input type="text" name="npc___id[]" value="<?= $this->id ?>" title="id">
-                </td>
-            </tr>
-            <tr>
-                <td><label>building_id</label></td>
-                <td>
-                    <input type="text" name="npc___building_id[]" value="<?= $this->building_id ?>" title="building_id">
+                    <button type="submit" name="save_single" value="<?= $id ?>">Save</button>
                 </td>
             </tr>
             <tr>
                 <td><label>spouse</label></td>
                 <td>
-                    <input type="text" name="npc___spouse[]" value="<?= $this->spouse ?>" title="spouse">
+                    <input type="text" name="npc___spouse[<?= $id ?>]" value="<?= $this->spouse ?>" title="spouse">
                 </td>
             </tr>
             <tr>
                 <td><label>children</label></td>
                 <td>
-                    <input type="text" name="npc___children[]" value="<?= implode(', ', $this->children) ?>" title="children">
+                    <input type="text" name="npc___children[<?= $id ?>]" value="<?= implode(', ', $this->children) ?>" title="children">
                 </td>
             </tr>
             <tr>
                 <td><label>type</label></td>
                 <td>
-                    <input type="text" name="npc___type[]" value="<?= $this->type ?>" title="type">
+                    <input type="text" name="npc___type[<?= $id ?>]" value="<?= $this->type ?>" title="type">
                 </td>
             </tr>
             <tr>
                 <td><label>profession</label></td>
                 <td>
-                    <input type="text" name="npc___profession[]" value="<?= $this->profession ?>" title="profession">
+                    <input type="text" name="npc___profession[<?= $id ?>]" value="<?= $this->profession ?>" title="profession">
                 </td>
             </tr>
             <tr>
                 <td><label>level</label></td>
                 <td>
-                    <input type="text" name="npc___level[]" value="<?= $this->level ?>" title="level">
+                    <input type="text" name="npc___level[<?= $id ?>]" value="<?= $this->level ?>" title="level">
                 </td>
             </tr>
             <tr>
                 <td><label>class</label></td>
                 <td>
-                    <input type="text" name="npc___class[]" value="<?= $this->class ?>" title="class">
+                    <input type="text" name="npc___class[<?= $id ?>]" value="<?= $this->class ?>" title="class">
                 </td>
             </tr>
             <tr>
                 <td><label>name</label></td>
                 <td>
-                    <input type="text" name="npc___name[]" value="<?= $this->name ?>" title="name">
+                    <input type="text" name="npc___name[<?= $id ?>]" value="<?= $this->name ?>" title="name">
                 </td>
             </tr>
             <tr>
                 <td><label>height</label></td>
                 <td>
-                    <input type="text" name="npc___height[]" value="<?= $this->height ?>" title="height">
+                    <input type="text" name="npc___height[<?= $id ?>]" value="<?= $this->height ?>" title="height">
                 </td>
             </tr>
             <tr>
                 <td><label>weight</label></td>
                 <td>
-                    <input type="text" name="npc___weight[]" value="<?= $this->weight ?>" title="weight">
+                    <input type="text" name="npc___weight[<?= $id ?>]" value="<?= $this->weight ?>" title="weight">
                 </td>
             </tr>
             <tr>
                 <td><label>description</label></td>
                 <td>
-                    <textarea style="width: 100%;" name="npc___description[]" title="description"><?= $this->description ?></textarea>
+                    <textarea style="width: 100%;" name="npc___description[<?= $id ?>]" title="description"><?= $this->description ?></textarea>
                 </td>
             </tr>
             <tr>
                 <td><label>clothing</label></td>
                 <td>
-                    <textarea style="width: 100%;" name="npc___clothing[]" title="clothing"><?= $this->clothing ?></textarea>
+                    <textarea style="width: 100%;" name="npc___clothing[<?= $id ?>]" title="clothing"><?= $this->clothing ?></textarea>
                 </td>
             </tr>
             <tr>
                 <td><label>possessions</label></td>
                 <td>
-                    <textarea style="width: 100%;" name="npc___possessions[]" title="possessions"><?= $this->possessions ?></textarea>
+                    <textarea style="width: 100%;" name="npc___possessions[<?= $id ?>]" title="possessions"><?= $this->possessions ?></textarea>
                 </td>
             </tr>
             <tr>
                 <td><label>arms_armor</label></td>
                 <td>
-                    <textarea style="width: 100%;" name="npc___arms_armor[]" title="arms_armor"><?= $this->arms_armor ?></textarea>
+                    <textarea style="width: 100%;" name="npc___arms_armor[<?= $id ?>]" title="arms_armor"><?= $this->arms_armor ?></textarea>
                 </td>
             </tr>
             </tbody>
@@ -146,8 +126,9 @@ class NPC
         return ob_get_clean();
     }
 
-    public static function getFromPOST($index)
+    public static function getFromPOST($id)
     {
+        $npc = new self();
         $fields = array(
             'spouse',
             'children',
@@ -163,10 +144,9 @@ class NPC
             'possessions',
             'arms_armor',
         );
-        $npc = new self($_POST['npc___id'][$index], $_POST['npc___building_id'][$index], null);
         foreach ($fields as $field) {
-            $value = $_POST['npc___'.$field][$index];
-            if (!empty($_POST['npc___'.$field][$index])) {
+            $value = $_POST['npc___'.$field][$id];
+            if (!empty($_POST['npc___'.$field][$id])) {
                 $npc->$field = $value;
             }
         }
