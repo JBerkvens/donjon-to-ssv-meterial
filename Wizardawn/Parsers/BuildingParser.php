@@ -17,32 +17,26 @@ use simple_html_dom;
 use simple_html_dom_node;
 use Wizardawn\Models\Building;
 use Wizardawn\Models\City;
+use Wizardawn\Models\Product;
 
 class BuildingParser extends Parser
 {
-    private static $buildings = array();
-    private $buildingsFromType = array();
-
     /**
      * This function parses the Map and adds links to the modals.
      *
-     * @param City            $city
+     * @param City $city
      * @param simple_html_dom $html
-     *
-     * @return array of buildings
-     * @internal param string $basePart
-     * @internal param string $type of the building (merchant, church, etc.).
+     * @return City
      */
-    public static function parseBuildings(City &$city, simple_html_dom $html)
+    public static function parseBuildings(City &$city, simple_html_dom $html): City
     {
-        $buildings = [];
         $children = $html->childNodes();
         $building = new simple_html_dom_node($html);
         $buildingType = 'test';
         foreach ($children as $child) {
             if (self::isBuildingID($child) || $child->tag == 'br') {
                 if (self::isBuildingID($building->firstChild())) {
-                    $buildings[] = self::parseBuilding($building, $buildingType);
+                    $city->addBuilding(self::parseBuilding($building, $buildingType));
                 } else {
                     if ($building->lastChild()->tag == 'img') {
                         if (mp_ends_with($building->lastChild()->getAttribute('src'), 'wtown_01.jpg')) {
@@ -72,29 +66,7 @@ class BuildingParser extends Parser
             }
             $building->appendChild($child);
         }
-        // The buildings currently also contain the NPC's.
-        /** @var Building $building */
-        foreach ($buildings as $building) {
-            mp_var_export($building, false, true, $building->getType());
-        }
-        exit;
-        $parser = new BuildingParser();
-        $parser->parseBase($basePart, $type);
-        $parser->parseOwner();
-        $parser->parseFamily();
-        $parser->parseTable();
-        $parser->parseNPCs();
-        if ($type == 'houses') {
-            self::$buildings = $parser->buildingsFromType;
-        } else {
-            foreach ($parser->buildingsFromType as $building) {
-                if (isset(self::$buildings[$building['id']])) {
-                    self::$buildings[$building['id']] = array_merge(self::$buildings[$building['id']], $building);
-                    unset(self::$buildings[$building['id']]['html']);
-                }
-            }
-        }
-        return $parser->buildingsFromType;
+        return $city;
     }
 
     private static function isBuildingID(simple_html_dom_node $node) {
@@ -115,8 +87,25 @@ class BuildingParser extends Parser
                 }
                 break;
             case 'merchant':
+                foreach ($node->childNodes() as $childNode) {
+                    if ($childNode->tag == 'font') {
+                        $building->setProducts(self::parseProductTable($childNode));
+                        $cleanChildNode = $childNode->removeChild(0, 1);
+                        $cleanChildNode = $cleanChildNode->removeChild($cleanChildNode->lastChild());
+                        $cleanChildNode = $cleanChildNode->removeChild($cleanChildNode->lastChild());
+                        $building->addNPC(NPCParser::parseNPC($cleanChildNode), true);
+                    }
+                }
                 break;
             case 'guild':
+                $building->setTitle($node->childNodes(1)->childNodes(0)->text());
+                foreach ($node->childNodes(1)->childNodes() as $nodeChild) {
+                    if ($nodeChild->tag == 'font') {
+                        $building->addNPC(NPCParser::parseNPC($nodeChild, 'guild_member'));
+                    }
+                }
+                mp_var_export($building);
+                mp_var_export($node->childNodes(1), true);
                 break;
             case 'guardhouse':
                 break;
@@ -125,8 +114,22 @@ class BuildingParser extends Parser
             default:
                 throw new Exception('\''.$building->getType().'\' is an unknown building type.');
         }
-//        self::printExample($building, $node);
         return $building;
+    }
+
+    private static function parseProductTable(simple_html_dom_node $node): array {
+        $table = $node->lastChild();
+        $productList = [];
+        foreach ($table->firstChild()->childNodes() as $row) {
+            if ($row === $table->firstChild()->firstChild()) {
+                continue;
+            }
+            $name = $row->childNodes(1)->firstChild()->innertext();
+            $cost = $row->childNodes(2)->firstChild()->innertext();
+            $inStock = intval($row->childNodes(3)->firstChild()->innertext());
+            $productList[] = new Product($name, $cost, $inStock);
+        }
+        return $productList;
     }
 
     /**

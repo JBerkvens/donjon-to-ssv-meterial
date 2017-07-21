@@ -10,6 +10,7 @@ require_once "Models/MapPanel.php";
 require_once "Models/MapLabel.php";
 require_once "Models/Building.php";
 require_once "Models/NPC.php";
+require_once "Models/Product.php";
 
 ?>
     <form action="#" method="post" enctype="multipart/form-data">

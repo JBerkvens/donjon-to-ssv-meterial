@@ -11,8 +11,6 @@ namespace ssv_material_parser;
 class NPC
 {
     public $wp_id;
-    public $spouse = null;
-    public $children = array();
     public $type = 'citizen';
     public $profession = '';
     public $level = 1;

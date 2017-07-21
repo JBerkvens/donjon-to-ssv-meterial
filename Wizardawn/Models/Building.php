@@ -10,8 +10,9 @@ class Building
     private $id;
     private $type;
     private $title = null;
+    /** @var NPC[] */
     private $npcs = [];
-    private $other = [];
+    private $products = [];
 
     public function __construct(int $id, string $type)
     {
@@ -34,13 +35,36 @@ class Building
         $this->title = $title;
     }
 
-    public function addNPC(NPC $npc)
+    public function addNPC(NPC $npc, bool $overrideOwner = false)
     {
-        $this->npcs[] = $npc;
+        if ($overrideOwner) {
+            $this->npcs[0] = $npc;
+        } else {
+            $this->npcs[] = $npc;
+        }
     }
 
-    public function addOther(string $key, mixed $other)
+    public function setProducts(array $products)
     {
-        $this->other[$key] = $other;
+        $this->products = $products;
+    }
+
+    public function addProduct(Product $product)
+    {
+        $this->products[] = $product;
+    }
+
+    public function updateWith(Building $building) {
+        if ($this->id != $building->id) {
+            throw new \Exception("The ID's don't match.");
+        }
+        $this->type = $building->type;
+        $this->title = $building->title;
+        foreach ($building->npcs as $npc) {
+            if (!in_array($npc, $this->npcs)) {
+                $this->npcs[] = $npc;
+            }
+        }
+        $this->products = $building->products;
     }
 }

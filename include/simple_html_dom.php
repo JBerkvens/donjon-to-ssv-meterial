@@ -192,7 +192,6 @@ class simple_html_dom_node
     // Debugging function to dump a single dom node with a bunch of information about it.
     public function dump_node($echo = true)
     {
-
         $string = $this->tag;
         if (count($this->attr) > 0) {
             $string .= '(';
@@ -278,6 +277,23 @@ class simple_html_dom_node
             return $this->children[$idx];
         }
         return null;
+    }
+
+    public function removeChild($startChild, $endChild = null): simple_html_dom_node
+    {
+        if (is_int($startChild)) {
+            $startChild = $this->childNodes($startChild);
+        }
+        if (is_int($endChild)) {
+            $endChild = $this->childNodes($endChild);
+        }
+        if ($endChild !== null && $endChild !== $startChild) {
+            $replaceString = '/'.str_replace('/', '\/', $startChild->outertext()).'(.*?)'.str_replace('/', '\/', $endChild->outertext()).'/';
+            $html = preg_replace($replaceString, '$2', $this->outertext());
+        } else {
+            $html = str_replace($startChild->outertext(), '', $this->outertext());
+        }
+        return (new simple_html_dom($html))->firstChild();
     }
 
     // returns the first child of node

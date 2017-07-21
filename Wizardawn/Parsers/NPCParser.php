@@ -21,14 +21,60 @@ class NPCParser extends Parser
         '---' => 'child',
     ];
 
-    public static function parseNPC(simple_html_dom_node $node): NPC
+    public static function parseNPC(simple_html_dom_node $node, $type = 'citizen'): NPC
     {
+        mp_var_export($node, false, true, $type);
         $npc = new NPC();
         $type = explode('<b>', $node->innertext())[0];
-        $type = self::$typeMap[$type];
-        $npc->type = $type;
-        mp_var_export($type);
+        if (empty($type)) {
+            $type = ucfirst(strtolower($node->childNodes(0)->text()));
+            $info       = explode(' ', $node->childNodes(0)->text());
+            $npc->level = $info[1];
+            $npc->class = $info[2];
+            mp_var_export($npc, true);
+            return $npc;
+        }
+        $npc->type = self::$typeMap[$type];
+        $npc->name = str_replace(':', '', $node->firstChild()->text());
+        list($npc->height, $npc->weight) = self::parsePhysique($node);
+        $npc->description = self::parseDescription($node);
+        $npc->clothing = self::parseClothing($node);
+        $npc->possessions = self::parsePosessions($node);
         return $npc;
+    }
+
+    private static function parsePhysique(simple_html_dom_node $node): array
+    {
+        if (preg_match("/\[<b>HGT:<\/b>(.*?)<b>WGT:<\/b>(.*?)\]/", $node->innertext(), $physique)) {
+            $height = 0;
+            $weight = 0;
+            if (preg_match("/(.*?)ft/", $physique[1], $feet)) {
+                $height += intval($feet[1]) * 30.48;
+            }
+            if (preg_match("/, (.*?)in/", $physique[1], $inches)) {
+                $height += intval($inches[1]) * 2.54;
+            }
+            if (preg_match("/(.*?)lbs/", $physique[2], $pounds)) {
+                $weight = intval($pounds[1]) * 0.453592;
+            }
+            return [intval(round($height, 0)), intval(round($weight, 0))];
+        }
+    }
+
+    private static function parseDescription(simple_html_dom_node $node): string {
+        $description = explode($node->childNodes(2)->outertext(), $node->innertext())[1];
+        $description = explode(']', $description)[1];
+        $description = explode($node->childNodes(3)->outertext(), $description)[0];
+        return trim($description);
+    }
+
+    private static function parseClothing(simple_html_dom_node $node): string {
+        $clothing = explode($node->childNodes(3)->outertext(), $node->innertext())[1];
+        return explode($node->childNodes(4)->outertext(), $clothing)[0];
+    }
+
+    private static function parsePosessions(simple_html_dom_node $node): string {
+        return explode($node->childNodes(4)->outertext(), $node->innertext())[1];
     }
 
     /**

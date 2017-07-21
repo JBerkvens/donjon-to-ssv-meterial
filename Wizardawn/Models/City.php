@@ -9,7 +9,9 @@ class City
 {
     private $title = 'Test City';
     private $map = null;
+    /** @var Building[] */
     private $buildings = [];
+    /** @var NPC[] */
     private $npcs = [];
     private $other = [];
 
@@ -23,9 +25,14 @@ class City
         $this->map = $map;
     }
 
-    public function addBuilding($building)
+    public function addBuilding(Building $building)
     {
-        $this->buildings[] = $building;
+        $buildingID = $building->getID();
+        if (isset($this->buildings[$buildingID])) {
+            $this->buildings[$buildingID]->updateWith($building);
+        } else {
+            $this->buildings[$buildingID] = $building;
+        }
     }
 
     public function addNPC(NPC $npc)

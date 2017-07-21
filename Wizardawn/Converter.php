@@ -3,7 +3,6 @@
 namespace ssv_material_parser;
 
 use \DOMDocument;
-use simple_html_dom;
 use Wizardawn\Models\City;
 
 require_once "Parsers/MapParser.php";
