@@ -6,10 +6,10 @@
  * Time: 20:58
  */
 
-namespace ssv_material_parser;
+namespace Wizardawn\Parser;
 
 use DOMDocument;
-use DOMElement;
+use ssv_material_parser\Parser;
 
 class RulersParser extends Parser
 {

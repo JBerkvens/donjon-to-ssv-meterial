@@ -2,14 +2,15 @@
 
 namespace Wizardawn\Models;
 
-class MapPanel
+class MapPanel extends JsonObject
 {
-    private $imageURL;
+    protected $imageURL;
     /** @var MapLabel[] */
-    private $labels = [];
+    protected $labels = [];
 
     public function __construct($imageURL)
     {
+        parent::__construct();
         $this->imageURL = $imageURL;
     }
 

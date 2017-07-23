@@ -6,11 +6,10 @@
  * Time: 20:49
  */
 
-namespace ssv_material_parser;
+namespace Wizardawn\Models;
 
-class NPC
+class NPC extends JsonObject
 {
-    public $wp_id;
     public $type = 'citizen';
     public $profession = '';
     public $level = 1;
@@ -25,7 +24,6 @@ class NPC
 
     public function getHTML()
     {
-        $id = uniqid('npc');
         ob_start();
         ?>
         <table style="position: relative; display: inline-block; border: 1px solid black; margin-right: 4px;">
@@ -33,89 +31,73 @@ class NPC
             <tr>
                 <td><label>Save</label></td>
                 <td>
-                    <select name="npc___save[<?= $id ?>]" title="Save">
-                        <option value="true">Yes</option>
-                        <option value="false">No</option>
-                    </select>
-                    <button type="submit" name="save_single" value="<?= $id ?>">Save</button>
-                </td>
-            </tr>
-            <tr>
-                <td><label>spouse</label></td>
-                <td>
-                    <input type="text" name="npc___spouse[<?= $id ?>]" value="<?= $this->spouse ?>" title="spouse">
-                </td>
-            </tr>
-            <tr>
-                <td><label>children</label></td>
-                <td>
-                    <input type="text" name="npc___children[<?= $id ?>]" value="<?= implode(', ', $this->children) ?>" title="children">
+                    <input type="checkbox" name="npc___save[]" value="<?= $this->id ?>" title="Save" checked>
                 </td>
             </tr>
             <tr>
                 <td><label>type</label></td>
                 <td>
-                    <input type="text" name="npc___type[<?= $id ?>]" value="<?= $this->type ?>" title="type">
+                    <input name="npc___type[<?= $this->id ?>]" value="<?= $this->type ?>" title="type">
                 </td>
             </tr>
             <tr>
                 <td><label>profession</label></td>
                 <td>
-                    <input type="text" name="npc___profession[<?= $id ?>]" value="<?= $this->profession ?>" title="profession">
+                    <input name="npc___profession[<?= $this->id ?>]" value="<?= $this->profession ?>" title="profession">
                 </td>
             </tr>
             <tr>
                 <td><label>level</label></td>
                 <td>
-                    <input type="text" name="npc___level[<?= $id ?>]" value="<?= $this->level ?>" title="level">
+                    <input name="npc___level[<?= $this->id ?>]" value="<?= $this->level ?>" title="level">
                 </td>
             </tr>
             <tr>
                 <td><label>class</label></td>
                 <td>
-                    <input type="text" name="npc___class[<?= $id ?>]" value="<?= $this->class ?>" title="class">
+                    <input name="npc___class[<?= $this->id ?>]" value="<?= $this->class ?>" title="class">
                 </td>
             </tr>
             <tr>
                 <td><label>name</label></td>
                 <td>
-                    <input type="text" name="npc___name[<?= $id ?>]" value="<?= $this->name ?>" title="name">
+                    <input name="npc___name[<?= $this->id ?>]" value="<?= $this->name ?>" title="name">
                 </td>
             </tr>
             <tr>
                 <td><label>height</label></td>
                 <td>
-                    <input type="text" name="npc___height[<?= $id ?>]" value="<?= $this->height ?>" title="height">
+                    <input name="npc___height[<?= $this->id ?>]" value="<?= $this->height ?>" title="height">
                 </td>
             </tr>
             <tr>
                 <td><label>weight</label></td>
                 <td>
-                    <input type="text" name="npc___weight[<?= $id ?>]" value="<?= $this->weight ?>" title="weight">
+                    <input name="npc___weight[<?= $this->id ?>]" value="<?= $this->weight ?>" title="weight">
                 </td>
             </tr>
             <tr>
                 <td><label>description</label></td>
                 <td>
-                    <textarea style="width: 100%;" name="npc___description[<?= $id ?>]" title="description"><?= $this->description ?></textarea>
+                    <textarea style="width: 100%;" name="npc___description[<?= $this->id ?>]" title="description"><?= $this->description ?></textarea>
                 </td>
             </tr>
             <tr>
                 <td><label>clothing</label></td>
                 <td>
-                    <textarea style="width: 100%;" name="npc___clothing[<?= $id ?>]" title="clothing"><?= $this->clothing ?></textarea>
+                    <textarea style="width: 100%;" name="npc___clothing[<?= $this->id ?>]" title="clothing"><?= $this->clothing ?></textarea>
                 </td>
             </tr>
             <tr>
                 <td><label>possessions</label></td>
                 <td>
-                    <textarea style="width: 100%;" name="npc___possessions[<?= $id ?>]" title="possessions"><?= $this->possessions ?></textarea>
+                    <textarea style="width: 100%;" name="npc___possessions[<?= $this->id ?>]" title="possessions"><?= $this->possessions ?></textarea>
                 </td>
             </tr>
             <tr>
                 <td><label>arms_armor</label></td>
                 <td>
-                    <textarea style="width: 100%;" name="npc___arms_armor[<?= $id ?>]" title="arms_armor"><?= $this->arms_armor ?></textarea>
+                    <textarea style="width: 100%;" name="npc___arms_armor[<?= $this->id ?>]" title="arms_armor"><?= $this->arms_armor ?></textarea>
                 </td>
             </tr>
             </tbody>
@@ -128,8 +110,6 @@ class NPC
     {
         $npc = new self();
         $fields = array(
-            'spouse',
-            'children',
             'type',
             'profession',
             'level',

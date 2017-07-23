@@ -6,17 +6,13 @@
  * Time: 20:58
  */
 
-namespace ssv_material_parser;
+namespace Wizardawn\Parser;
 
-use DOMDocument;
-use DOMElement;
-use DOMNodeList;
-use DOMText;
 use simple_html_dom;
 use simple_html_dom_node;
+use ssv_material_parser\Parser;
 use Wizardawn\Models\Map;
 use Wizardawn\Models\MapLabel;
-use Wizardawn\Models\MapPanel;
 
 class MapParser extends Parser
 {
@@ -49,7 +45,7 @@ class MapParser extends Parser
             preg_match('/\/[\s\S]+?\/([\s\S]+?)"/', (string)$image, $image);
             $srcImagePaths[] = 'http://wizardawn.and-mag.com/maps/'.$image[1];
         }
-        $map->setImage(\ImageCombiner::convertToSingle($srcImagePaths, $mapWidth - 100));
+//        $map->setImage(\ImageCombiner::convertToSingle($srcImagePaths, $mapWidth - 100));
 
         return $map;
     }

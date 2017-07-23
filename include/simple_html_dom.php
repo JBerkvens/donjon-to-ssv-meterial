@@ -288,12 +288,20 @@ class simple_html_dom_node
             $endChild = $this->childNodes($endChild);
         }
         if ($endChild !== null && $endChild !== $startChild) {
-            $replaceString = '/'.str_replace('/', '\/', $startChild->outertext()).'(.*?)'.str_replace('/', '\/', $endChild->outertext()).'/';
+            $replaceString = '/'.$this->prepareForPreg($startChild->outertext()).'(.*?)'.$this->prepareForPreg($endChild->outertext()).'/';
             $html = preg_replace($replaceString, '$2', $this->outertext());
         } else {
             $html = str_replace($startChild->outertext(), '', $this->outertext());
         }
         return (new simple_html_dom($html))->firstChild();
+    }
+
+    private function prepareForPreg(string $string): string
+    {
+        $string = str_replace('/', '\/', $string);
+        $string = str_replace('[', '\[', $string);
+        $string = str_replace(']', '\]', $string);
+        return $string;
     }
 
     // returns the first child of node

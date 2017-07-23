@@ -6,32 +6,31 @@
  * Time: 20:58
  */
 
-namespace ssv_material_parser;
+namespace Wizardawn\Parser;
 
-use DOMDocument;
-use DOMElement;
-use DOMNodeList;
-use DOMText;
 use Exception;
 use simple_html_dom;
 use simple_html_dom_node;
+use ssv_material_parser\Parser;
 use Wizardawn\Models\Building;
 use Wizardawn\Models\City;
 use Wizardawn\Models\Product;
+use Wizardawn\Models\Spell;
 
 class BuildingParser extends Parser
 {
     /**
      * This function parses the Map and adds links to the modals.
      *
-     * @param City $city
+     * @param City            $city
      * @param simple_html_dom $html
+     *
      * @return City
      */
     public static function parseBuildings(City &$city, simple_html_dom $html): City
     {
-        $children = $html->childNodes();
-        $building = new simple_html_dom_node($html);
+        $children     = $html->childNodes();
+        $building     = new simple_html_dom_node($html);
         $buildingType = 'test';
         foreach ($children as $child) {
             if (self::isBuildingID($child) || $child->tag == 'br') {
@@ -41,23 +40,17 @@ class BuildingParser extends Parser
                     if ($building->lastChild()->tag == 'img') {
                         if (mp_ends_with($building->lastChild()->getAttribute('src'), 'wtown_01.jpg')) {
                             $buildingType = 'house';
-                        }
-                        elseif (mp_ends_with($building->lastChild()->getAttribute('src'), 'wtown_02.jpg')) {
+                        } elseif (mp_ends_with($building->lastChild()->getAttribute('src'), 'wtown_02.jpg')) {
                             $buildingType = 'ruler';
-                        }
-                        elseif (mp_ends_with($building->lastChild()->getAttribute('src'), 'wtown_03.jpg')) {
+                        } elseif (mp_ends_with($building->lastChild()->getAttribute('src'), 'wtown_03.jpg')) {
                             $buildingType = 'guardhouse';
-                        }
-                        elseif (mp_ends_with($building->lastChild()->getAttribute('src'), 'wtown_04.jpg')) {
+                        } elseif (mp_ends_with($building->lastChild()->getAttribute('src'), 'wtown_04.jpg')) {
                             $buildingType = 'church';
-                        }
-                        elseif (mp_ends_with($building->lastChild()->getAttribute('src'), 'wtown_05.jpg')) {
+                        } elseif (mp_ends_with($building->lastChild()->getAttribute('src'), 'wtown_05.jpg')) {
                             $buildingType = 'bank';
-                        }
-                        elseif (mp_ends_with($building->lastChild()->getAttribute('src'), 'wtown_06.jpg')) {
+                        } elseif (mp_ends_with($building->lastChild()->getAttribute('src'), 'wtown_06.jpg')) {
                             $buildingType = 'merchant';
-                        }
-                        elseif (mp_ends_with($building->lastChild()->getAttribute('src'), 'wtown_07.jpg')) {
+                        } elseif (mp_ends_with($building->lastChild()->getAttribute('src'), 'wtown_07.jpg')) {
                             $buildingType = 'guild';
                         }
                     }
@@ -69,14 +62,16 @@ class BuildingParser extends Parser
         return $city;
     }
 
-    private static function isBuildingID(simple_html_dom_node $node) {
+    private static function isBuildingID(simple_html_dom_node $node)
+    {
         return $node->tag == 'b'
-            && $node->firstChild()->tag == 'i'
-            && $node->firstChild()->firstChild()->tag == 'font'
-            && $node->firstChild()->firstChild()->getAttribute('size') == 3;
+               && $node->firstChild()->tag == 'i'
+               && $node->firstChild()->firstChild()->tag == 'font'
+               && $node->firstChild()->firstChild()->getAttribute('size') == 3;
     }
 
-    private static function parseBuilding(simple_html_dom_node $node, $buildingType = 'house'): Building {
+    private static function parseBuilding(simple_html_dom_node $node, $buildingType = 'house'): Building
+    {
         $building = new Building(intval($node->firstChild()->firstChild()->firstChild()->innertext()), $buildingType);
         switch ($building->getType()) {
             case 'house':
@@ -101,32 +96,48 @@ class BuildingParser extends Parser
                 $building->setTitle($node->childNodes(1)->childNodes(0)->text());
                 foreach ($node->childNodes(1)->childNodes() as $nodeChild) {
                     if ($nodeChild->tag == 'font') {
-                        $building->addNPC(NPCParser::parseNPC($nodeChild, 'guild_member'));
+                        $building->addNPC(NPCParser::parseNPC($nodeChild, 'guild_member'), true);
                     }
                 }
-                mp_var_export($building);
-                mp_var_export($node->childNodes(1), true);
                 break;
             case 'guardhouse':
+                $building->setTitle($node->childNodes(1)->childNodes(0)->text());
+                foreach ($node->childNodes(1)->childNodes() as $nodeChild) {
+                    if ($nodeChild->tag == 'font') {
+                        $building->addNPC(NPCParser::parseNPC($nodeChild, 'guard'), true);
+                    }
+                }
                 break;
             case 'church':
+                $building->setTitle($node->childNodes(1)->childNodes(0)->text());
+                foreach ($node->childNodes(1)->childNodes() as $nodeChild) {
+                    if ($nodeChild->tag == 'font' && $nodeChild->firstChild()->tag == 'b') {
+                        $building->addNPC(NPCParser::parseNPC($nodeChild, 'church_member'), true);
+                    } elseif ($nodeChild->tag == 'font' && $nodeChild->firstChild()->tag == 'i') {
+                        preg_match_all('/<i>(.*?)<\/i> .*? (.*?)([cseg]p)/', $nodeChild->innertext(), $spellParts);
+                        for ($i = 0; $i < count($spellParts[0]); ++$i) {
+                            $building->addSpell(new Spell($spellParts[1][$i], $spellParts[2][$i] . $spellParts[3][$i]));
+                        }
+                    }
+                }
                 break;
             default:
-                throw new Exception('\''.$building->getType().'\' is an unknown building type.');
+                throw new Exception('\'' . $building->getType() . '\' is an unknown building type.');
         }
         return $building;
     }
 
-    private static function parseProductTable(simple_html_dom_node $node): array {
-        $table = $node->lastChild();
+    private static function parseProductTable(simple_html_dom_node $node): array
+    {
+        $table       = $node->lastChild();
         $productList = [];
         foreach ($table->firstChild()->childNodes() as $row) {
             if ($row === $table->firstChild()->firstChild()) {
                 continue;
             }
-            $name = $row->childNodes(1)->firstChild()->innertext();
-            $cost = $row->childNodes(2)->firstChild()->innertext();
-            $inStock = intval($row->childNodes(3)->firstChild()->innertext());
+            $name          = $row->childNodes(1)->firstChild()->innertext();
+            $cost          = $row->childNodes(2)->firstChild()->innertext();
+            $inStock       = intval($row->childNodes(3)->firstChild()->innertext());
             $productList[] = new Product($name, $cost, $inStock);
         }
         return $productList;

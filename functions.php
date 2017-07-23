@@ -19,6 +19,25 @@ function ssv_material_parser_enquire_admin_scripts()
 
 add_action('admin_enqueue_scripts', 'ssv_material_parser_enquire_admin_scripts', 12);
 
+function ssv_material_parser_session()
+{
+    require_once "Wizardawn/Models/JsonObject.php";
+    require_once "Wizardawn/Models/City.php";
+    require_once "Wizardawn/Models/NPC.php";
+    require_once "Wizardawn/Models/Map.php";
+    require_once "Wizardawn/Models/MapPanel.php";
+    require_once "Wizardawn/Models/MapLabel.php";
+    require_once "Wizardawn/Models/Building.php";
+    require_once "Wizardawn/Models/NPC.php";
+    require_once "Wizardawn/Models/Product.php";
+    require_once "Wizardawn/Models/Spell.php";
+    if (!session_id()) {
+        session_start();
+    }
+}
+
+add_action('init', 'ssv_material_parser_session');
+
 if (!function_exists('mp_edit_form_after_title')) {
     function mp_edit_form_after_title()
     {

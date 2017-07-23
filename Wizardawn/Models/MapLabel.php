@@ -2,21 +2,17 @@
 
 namespace Wizardawn\Models;
 
-class MapLabel
+class MapLabel extends JsonObject
 {
-    private $id;
-    private $left;
-    private $top;
+    protected $label;
+    protected $left;
+    protected $top;
 
-    public function __construct(int $id, int $left, int $top)
+    public function __construct(int $label, int $left, int $top)
     {
-        $this->id = $id;
+        parent::__construct();
+        $this->label = $label;
         $this->left = $left;
         $this->top = $top;
-    }
-
-    public function getId(): int
-    {
-        return $this->id;
     }
 }

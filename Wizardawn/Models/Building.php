@@ -2,27 +2,28 @@
 
 namespace Wizardawn\Models;
 
-
-use ssv_material_parser\NPC;
-
-class Building
+class Building extends JsonObject
 {
-    private $id;
-    private $type;
-    private $title = null;
+    public $label;
+    protected $type;
+    protected $title = null;
     /** @var NPC[] */
-    private $npcs = [];
-    private $products = [];
+    protected $npcs = [];
+    /** @var Product[] */
+    protected $products = [];
+    /** @var Spell[] */
+    protected $spells = [];
 
-    public function __construct(int $id, string $type)
+    public function __construct(int $label, string $type)
     {
-        $this->id = $id;
-        $this->type = $type;
+        parent::__construct();
+        $this->label = $label;
+        $this->type  = $type;
     }
 
     public function getID()
     {
-        return $this->id;
+        return $this->label;
     }
 
     public function getType()
@@ -37,11 +38,16 @@ class Building
 
     public function addNPC(NPC $npc, bool $overrideOwner = false)
     {
-        if ($overrideOwner) {
-            $this->npcs[0] = $npc;
+        if ($overrideOwner && !empty($this->npcs)) {
+            $this->npcs[array_keys($this->npcs)[0]] = $npc;
         } else {
-            $this->npcs[] = $npc;
+            $this->npcs[$npc->id] = $npc;
         }
+    }
+
+    public function getNPCs()
+    {
+        return $this->npcs;
     }
 
     public function setProducts(array $products)
@@ -54,17 +60,39 @@ class Building
         $this->products[] = $product;
     }
 
-    public function updateWith(Building $building) {
-        if ($this->id != $building->id) {
-            throw new \Exception("The ID's don't match.");
+    public function addSpell(Spell $spell)
+    {
+        $this->spells[] = $spell;
+    }
+
+    public function getSpells()
+    {
+        return $this->spells;
+    }
+
+    public function updateWith(Building $building)
+    {
+        if ($this->label != $building->label) {
+            throw new \Exception("The Buildings have different Labels (indicating that they are different buildings)");
         }
-        $this->type = $building->type;
+        $this->type  = $building->type;
         $this->title = $building->title;
         foreach ($building->npcs as $npc) {
-            if (!in_array($npc, $this->npcs)) {
+            if (!in_array($npc->name, array_column($this->npcs, 'name'))) {
                 $this->npcs[] = $npc;
             }
         }
-        $this->products = $building->products;
+        foreach ($building->products as $product) {
+            if (!in_array($product, $this->products)) {
+                $this->products[] = $product;
+            }
+        }
+        foreach ($building->spells as $spells) {
+            if (!in_array($spells, $this->spells)) {
+                $this->spells[] = $spells;
+            }
+        }
+
+        return $this;
     }
 }

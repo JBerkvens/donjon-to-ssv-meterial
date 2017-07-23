@@ -6,40 +6,46 @@
  * Time: 20:58
  */
 
-namespace ssv_material_parser;
+namespace Wizardawn\Parser;
 
-use DOMDocument;
-use DOMElement;
 use simple_html_dom_node;
+use ssv_material_parser\Parser;
+use Wizardawn\Models\NPC;
 
 class NPCParser extends Parser
 {
 
-    private static $typeMap = [
-        '-' => 'main',
-        '--' => 'spouse',
-        '---' => 'child',
-    ];
+    private static $typeMap
+        = [
+            '-'   => 'main',
+            '--'  => 'spouse',
+            '---' => 'child',
+        ];
 
-    public static function parseNPC(simple_html_dom_node $node, $type = 'citizen'): NPC
+    public static function parseNPC(simple_html_dom_node $node, $type = null): NPC
     {
-        mp_var_export($node, false, true, $type);
-        $npc = new NPC();
-        $type = explode('<b>', $node->innertext())[0];
-        if (empty($type)) {
-            $type = ucfirst(strtolower($node->childNodes(0)->text()));
-            $info       = explode(' ', $node->childNodes(0)->text());
-            $npc->level = $info[1];
-            $npc->class = $info[2];
-            mp_var_export($npc, true);
-            return $npc;
+        $npc  = new NPC();
+        if ($type !== null) {
+            $npc->profession = explode(':', ucfirst(strtolower($node->childNodes(0)->text())))[0];
+            $info            = explode(' ', $node->childNodes(1)->text());
+            if (!isset($info[1])) {
+                mp_var_export($node);
+                mp_var_export($info, 1);
+            }
+            $npc->level      = $info[1];
+            $npc->class      = explode(']', $info[2])[0];
+            $node            = $node->removeChild(0, 1);
+            $npc->type       = $type;
+        } else {
+            $type = explode('<b>', $node->innertext())[0];
+            $npc->type = self::$typeMap[$type];
         }
-        $npc->type = self::$typeMap[$type];
         $npc->name = str_replace(':', '', $node->firstChild()->text());
         list($npc->height, $npc->weight) = self::parsePhysique($node);
         $npc->description = self::parseDescription($node);
-        $npc->clothing = self::parseClothing($node);
-        $npc->possessions = self::parsePosessions($node);
+        $npc->clothing    = self::parseClothing($node);
+        $npc->possessions = self::parsePossessions($node);
+        $npc->arms_armor  = self::parseArmsAndArmor($node);
         return $npc;
     }
 
@@ -59,22 +65,38 @@ class NPCParser extends Parser
             }
             return [intval(round($height, 0)), intval(round($weight, 0))];
         }
+        return [];
     }
 
-    private static function parseDescription(simple_html_dom_node $node): string {
+    private static function parseDescription(simple_html_dom_node $node): string
+    {
         $description = explode($node->childNodes(2)->outertext(), $node->innertext())[1];
         $description = explode(']', $description)[1];
         $description = explode($node->childNodes(3)->outertext(), $description)[0];
         return trim($description);
     }
 
-    private static function parseClothing(simple_html_dom_node $node): string {
+    private static function parseClothing(simple_html_dom_node $node): string
+    {
         $clothing = explode($node->childNodes(3)->outertext(), $node->innertext())[1];
-        return explode($node->childNodes(4)->outertext(), $clothing)[0];
+        return trim(explode($node->childNodes(4)->outertext(), $clothing)[0]);
     }
 
-    private static function parsePosessions(simple_html_dom_node $node): string {
-        return explode($node->childNodes(4)->outertext(), $node->innertext())[1];
+    private static function parsePossessions(simple_html_dom_node $node): string
+    {
+        $possessions = explode($node->childNodes(4)->outertext(), $node->innertext())[1];
+        if ($node->childNodes(5) !== null) {
+            $possessions = trim(explode($node->childNodes(5)->outertext(), $possessions)[0]);
+        }
+        return $possessions;
+    }
+
+    private static function parseArmsAndArmor(simple_html_dom_node $node): string
+    {
+        if ($node->childNodes(5) !== null) {
+            return trim(explode($node->childNodes(5)->outertext(), $node->innertext())[1]);
+        }
+        return '';
     }
 
     /**

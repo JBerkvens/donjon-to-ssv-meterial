@@ -2,13 +2,12 @@
 
 namespace Wizardawn\Models;
 
-class Map
+class Map extends JsonObject
 {
     /** @var MapLabel[] */
-    private $labels = [];
-    private $width = 500;
-    private $image = null;
-    private $wp_id = null;
+    protected $labels = [];
+    protected $width = 500;
+    protected $image = null;
 
     public function addLabel(MapLabel $label)
     {
@@ -38,8 +37,8 @@ class Map
         /** @var \WP_Post $foundMap */
         $foundMap = $wpdb->get_row("SELECT p.ID FROM $wpdb->posts AS p WHERE p.post_type = 'map' AND p.post_title = '$title'");
         if ($foundMap) {
-            $this->wp_id = $foundMap->ID;
-            return $this->wp_id;
+            $this->id = $foundMap->ID;
+            return $this->id;
         }
 
         $widthImageCount = ((($this->width - 100) - 300) / 300) + 2;
@@ -143,5 +142,10 @@ class Map
         </div>
         <?php
         return ob_get_clean();
+    }
+
+    public function getHTML()
+    {
+        return '###MAP_PLACEHOLDER###';
     }
 }
