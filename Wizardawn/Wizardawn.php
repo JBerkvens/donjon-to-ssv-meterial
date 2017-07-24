@@ -62,22 +62,44 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
                 $nextPage = 'npcs';
                 $id = $_POST['save_single'];
                 $wp_id = NPC::getFromPOST($id, true)->toWordPress();
-                $tmp = $city->replaceID($id, $wp_id);
-                if (!$tmp) {
+                if (!$city->replaceID($id, $wp_id)) {
                     throw new Exception('WordPress ID not changed in City Object');
                 }
                 $_SESSION['city'] = $city;
             } else {
                 $nextPage = 'buildings';
-                $keyReplaceMap = [];
                 foreach ($_POST['npc___save'] as $id) {
-                    $keyReplaceMap[$id] = NPC::getFromPOST($id)->toWordPress();
+                    $wp_id = NPC::getFromPOST($id)->toWordPress();
+                    if (!$city->replaceID($id, $wp_id)) {
+                        throw new Exception('WordPress ID not changed in City Object');
+                    }
                 }
-                mp_var_export($keyReplaceMap, true);
             }
             break;
         case 'buildings':
-            $nextPage = 'city';
+            if (isset($_POST['skip'])) {
+                $nextPage = 'city';
+                break;
+            }
+            /** @var City $city */
+            $city = $_SESSION['city'];
+            if (isset($_POST['save_single'])) {
+                $nextPage = 'buildings';
+                $id = $_POST['save_single'];
+                $wp_id = Building::getFromPOST($id, true)->toWordPress();
+                if (!$city->replaceID($id, $wp_id)) {
+                    throw new Exception('WordPress ID not changed in City Object');
+                }
+                $_SESSION['city'] = $city;
+            } else {
+                $nextPage = 'city';
+                foreach ($_POST['building___save'] as $id) {
+                    $wp_id = Building::getFromPOST($id)->toWordPress();
+                    if (!$city->replaceID($id, $wp_id)) {
+                        throw new Exception('WordPress ID not changed in City Object');
+                    }
+                }
+            }
             break;
         case 'city':
             break;
@@ -109,6 +131,8 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
             $city = $_SESSION['city'];
             ?>
             <form action="#" method="POST">
+                <input type="submit" name="skip" id="submit" class="button button-primary button-large" value="Go to City"><br/>
+                <input type="hidden" name="save" value="buildings">
                 <?php
                 foreach ($city->getBuildings() as $key => $building) {
                     if ($building instanceof Building) {

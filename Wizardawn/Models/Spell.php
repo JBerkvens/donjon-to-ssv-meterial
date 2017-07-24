@@ -5,8 +5,8 @@ namespace Wizardawn\Models;
 
 class Spell extends JsonObject
 {
-    protected $spell;
-    protected $cost;
+    public $spell;
+    public $cost;
 
     public function __construct(string $spell, string $cost)
     {
