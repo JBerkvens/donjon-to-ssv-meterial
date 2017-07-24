@@ -32,6 +32,7 @@ class NPC extends JsonObject
                 <td><label>Save</label></td>
                 <td>
                     <input type="checkbox" name="npc___save[]" value="<?= $this->id ?>" title="Save" checked>
+                    <button name="save_single" value="<?= $this->id ?>" title="Save Single">Save <?= $this->name ?></button>
                 </td>
             </tr>
             <tr>
@@ -43,7 +44,8 @@ class NPC extends JsonObject
             <tr>
                 <td><label>profession</label></td>
                 <td>
-                    <input name="npc___profession[<?= $this->id ?>]" value="<?= $this->profession ?>" title="profession">
+                    <input name="npc___profession[<?= $this->id ?>]" value="<?= $this->profession ?>"
+                           title="profession">
                 </td>
             </tr>
             <tr>
@@ -79,25 +81,29 @@ class NPC extends JsonObject
             <tr>
                 <td><label>description</label></td>
                 <td>
-                    <textarea style="width: 100%;" name="npc___description[<?= $this->id ?>]" title="description"><?= $this->description ?></textarea>
+                    <textarea style="width: 100%;" name="npc___description[<?= $this->id ?>]"
+                              title="description"><?= $this->description ?></textarea>
                 </td>
             </tr>
             <tr>
                 <td><label>clothing</label></td>
                 <td>
-                    <textarea style="width: 100%;" name="npc___clothing[<?= $this->id ?>]" title="clothing"><?= $this->clothing ?></textarea>
+                    <textarea style="width: 100%;" name="npc___clothing[<?= $this->id ?>]"
+                              title="clothing"><?= $this->clothing ?></textarea>
                 </td>
             </tr>
             <tr>
                 <td><label>possessions</label></td>
                 <td>
-                    <textarea style="width: 100%;" name="npc___possessions[<?= $this->id ?>]" title="possessions"><?= $this->possessions ?></textarea>
+                    <textarea style="width: 100%;" name="npc___possessions[<?= $this->id ?>]"
+                              title="possessions"><?= $this->possessions ?></textarea>
                 </td>
             </tr>
             <tr>
                 <td><label>arms_armor</label></td>
                 <td>
-                    <textarea style="width: 100%;" name="npc___arms_armor[<?= $this->id ?>]" title="arms_armor"><?= $this->arms_armor ?></textarea>
+                    <textarea style="width: 100%;" name="npc___arms_armor[<?= $this->id ?>]"
+                              title="arms_armor"><?= $this->arms_armor ?></textarea>
                 </td>
             </tr>
             </tbody>
@@ -106,10 +112,10 @@ class NPC extends JsonObject
         return ob_get_clean();
     }
 
-    public static function getFromPOST($id)
+    public static function getFromPOST($id, $unset = false)
     {
         $npc = new self();
-        $fields = array(
+        $fields = [
             'type',
             'profession',
             'level',
@@ -121,13 +127,72 @@ class NPC extends JsonObject
             'clothing',
             'possessions',
             'arms_armor',
-        );
+        ];
         foreach ($fields as $field) {
             $value = $_POST['npc___'.$field][$id];
             if (!empty($_POST['npc___'.$field][$id])) {
                 $npc->$field = $value;
             }
+            if ($unset) {
+                unset($_POST['npc___'.$field][$id]);
+            }
         }
         return $npc;
+    }
+
+    /**
+     * @return int|\WP_Error
+     */
+    public function toWordPress()
+    {
+        $title = $this->name;
+        $content = $this->description;
+
+        /** @var \wpdb $wpdb */
+        global $wpdb;
+        $sql = "SELECT p.ID FROM $wpdb->posts AS p";
+        $keysToCheck = ['height', 'weight'];
+        foreach ($keysToCheck as $key) {
+            $sql .= " LEFT JOIN $wpdb->postmeta AS pm_$key ON pm_$key.post_id = p.ID";
+        }
+        $sql .= " WHERE p.post_type = 'npc' AND p.post_title = '$title' AND p.post_content = '$content'";
+        foreach ($keysToCheck as $key) {
+            $value = $this->$key;
+            $sql .= " AND pm_$key.meta_key = '$key' AND pm_$key.meta_value = '$value'";
+        }
+        /** @var \WP_Post $foundNPC */
+        $foundNPC = $wpdb->get_row($sql);
+        if ($foundNPC) {
+            // The NPC has been found (not saving another instance but returning the found ID).
+            return $foundNPC->ID;
+        }
+
+        $thisTypeTerm = term_exists(ucfirst($this->type), 'npc_type', 0);
+        if (!$thisTypeTerm) {
+            $thisTypeTerm = wp_insert_term(ucfirst($this->type), 'npc_type', ['parent' => 0]);
+        }
+
+        $custom_tax = [
+            'npc_type' => [
+                $thisTypeTerm['term_taxonomy_id'],
+            ],
+        ];
+
+        $wp_id = wp_insert_post(
+            [
+                'post_title'   => $this->name,
+                'post_content' => $this->description,
+                'post_type'    => 'npc',
+                'post_status'  => 'publish',
+                'tax_input'    => $custom_tax,
+            ]
+        );
+        foreach ($this as $key => $value) {
+            if ($key == 'name' || $key == 'description' || $key == 'html') {
+                continue;
+            }
+            update_post_meta($wp_id, $key, $value);
+        }
+        return $wp_id;
     }
 }

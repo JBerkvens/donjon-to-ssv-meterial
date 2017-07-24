@@ -2,6 +2,9 @@
 
 namespace ssv_material_parser;
 
+use Exception;
+use Wizardawn\Models\Building;
+use Wizardawn\Models\City;
 use Wizardawn\Models\NPC;
 
 require_once 'Converter.php';
@@ -49,9 +52,28 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
             }
             break;
         case 'npcs':
-            $nextPage = 'buildings';
-            foreach ($_POST['npc___save'] as $id) {
-                mp_var_export(NPC::getFromPOST($id), 1);
+            if (isset($_POST['skip'])) {
+                $nextPage = 'buildings';
+                break;
+            }
+            /** @var City $city */
+            $city = $_SESSION['city'];
+            if (isset($_POST['save_single'])) {
+                $nextPage = 'npcs';
+                $id = $_POST['save_single'];
+                $wp_id = NPC::getFromPOST($id, true)->toWordPress();
+                $tmp = $city->replaceID($id, $wp_id);
+                if (!$tmp) {
+                    throw new Exception('WordPress ID not changed in City Object');
+                }
+                $_SESSION['city'] = $city;
+            } else {
+                $nextPage = 'buildings';
+                $keyReplaceMap = [];
+                foreach ($_POST['npc___save'] as $id) {
+                    $keyReplaceMap[$id] = NPC::getFromPOST($id)->toWordPress();
+                }
+                mp_var_export($keyReplaceMap, true);
             }
             break;
         case 'buildings':
@@ -66,11 +88,16 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
             $city = $_SESSION['city'];
             ?>
             <form action="#" method="POST">
+                <input type="submit" name="skip" id="submit" class="button button-primary button-large" value="Go to Buildings"><br/>
                 <input type="hidden" name="save" value="npcs">
                 <?php
                 foreach ($city->getBuildings() as $key => $building) {
-                    foreach ($building->getNPCs() as $npc) {
-                        echo $npc->getHTML();
+                    if ($building instanceof Building) {
+                        foreach ($building->getNPCs() as $npc) {
+                            if ($npc instanceof NPC) {
+                                echo $npc->getHTML();
+                            }
+                        }
                     }
                 }
                 echo get_submit_button('Save NPCs');
@@ -84,7 +111,9 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
             <form action="#" method="POST">
                 <?php
                 foreach ($city->getBuildings() as $key => $building) {
-                    echo $building->getHTML();
+                    if ($building instanceof Building) {
+                        echo $building->getHTML();
+                    }
                 }
                 echo get_submit_button('Save buildings');
                 ?>
