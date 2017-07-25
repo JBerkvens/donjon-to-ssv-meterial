@@ -21,6 +21,7 @@ class Building extends JsonObject
         parent::__construct();
         $this->label = $label;
         $this->type  = $type;
+        $this->title = 'Building ' . $label;
     }
 
     public function getID()
@@ -31,6 +32,16 @@ class Building extends JsonObject
     public function getType()
     {
         return $this->type;
+    }
+
+    public function setType(string $type)
+    {
+        $this->type = $type;
+    }
+
+    public function getTitle()
+    {
+        return $this->title;
     }
 
     public function setTitle($title)
@@ -59,12 +70,12 @@ class Building extends JsonObject
 
     public function addProduct(Product $product)
     {
-        $this->products[] = $product;
+        $this->products[$product->id] = $product;
     }
 
     public function addSpell(Spell $spell)
     {
-        $this->spells[] = $spell;
+        $this->spells[$spell->id] = $spell;
     }
 
     public function getSpells()
@@ -81,17 +92,17 @@ class Building extends JsonObject
         $this->title = $building->title;
         foreach ($building->npcs as $npc) {
             if (!in_array($npc->name, array_column($this->npcs, 'name'))) {
-                $this->npcs[] = $npc;
+                $this->npcs[$npc->id] = $npc;
             }
         }
         foreach ($building->products as $product) {
             if (!in_array($product, $this->products)) {
-                $this->products[] = $product;
+                $this->products[$product->id] = $product;
             }
         }
         foreach ($building->spells as $spells) {
             if (!in_array($spells, $this->spells)) {
-                $this->spells[] = $spells;
+                $this->spells[$spells->id] = $spells;
             }
         }
 
@@ -103,12 +114,12 @@ class Building extends JsonObject
         ob_start();
         ?>
         <table style="position: relative; display: inline-block; border: 1px solid black; margin-right: 4px; width: 330px;">
-            <tbody>
+            <tbody style="width: 100%; display: table;">
             <tr>
                 <td><label>Save</label></td>
                 <td>
                     <input type="checkbox" name="building___save[]" value="<?= $this->id ?>" title="Save" checked>
-                    <button name="save_single" value="<?= $this->id ?>" title="Save Single">Save <?= $this->title ?></button>
+                    <button name="save_single" value="<?= $this->id ?>" title="Save Single" style="float: right;">Save Building <?= $this->label ?></button>
                 </td>
             </tr>
             <tr>
@@ -287,7 +298,6 @@ class Building extends JsonObject
                 unset($_POST['building___' . $field][$id]);
             }
         }
-        mp_var_export($building, true);
         return $building;
     }
 
@@ -297,7 +307,7 @@ class Building extends JsonObject
     public function toWordPress()
     {
         $title   = $this->title;
-        $content = $this->description;
+        $content = $this->getWordPressContent();
 
         /** @var \wpdb $wpdb */
         global $wpdb;
@@ -331,8 +341,8 @@ class Building extends JsonObject
 
         $wp_id = wp_insert_post(
             [
-                'post_title'   => $this->name,
-                'post_content' => $this->description,
+                'post_title'   => $title,
+                'post_content' => $content,
                 'post_type'    => 'npc',
                 'post_status'  => 'publish',
                 'tax_input'    => $custom_tax,
@@ -345,5 +355,25 @@ class Building extends JsonObject
             update_post_meta($wp_id, $key, $value);
         }
         return $wp_id;
+    }
+
+    private function getWordPressContent(): string {
+        mp_var_export($this, true);
+        ob_start();
+        switch ($this->type) {
+            case 'House':
+                /** @var string $npc */
+                foreach ($this->npcs as $npc) {
+                    echo '[npc-' . $npc . ']';
+                }
+                break;
+            default:
+                /** @var string $npc */
+                foreach ($this->npcs as $npc) {
+                    echo '[npc-' . $npc . '-li]';
+                }
+                break;
+        }
+        return ob_get_clean();
     }
 }

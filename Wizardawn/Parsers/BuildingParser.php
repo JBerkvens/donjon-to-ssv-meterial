@@ -39,19 +39,19 @@ class BuildingParser extends Parser
                 } else {
                     if ($building->lastChild()->tag == 'img') {
                         if (mp_ends_with($building->lastChild()->getAttribute('src'), 'wtown_01.jpg')) {
-                            $buildingType = 'house';
+                            $buildingType = 'House';
                         } elseif (mp_ends_with($building->lastChild()->getAttribute('src'), 'wtown_02.jpg')) {
-                            $buildingType = 'ruler';
+                            $buildingType = 'Ruler';
                         } elseif (mp_ends_with($building->lastChild()->getAttribute('src'), 'wtown_03.jpg')) {
-                            $buildingType = 'guardhouse';
+                            $buildingType = 'Guardhouse';
                         } elseif (mp_ends_with($building->lastChild()->getAttribute('src'), 'wtown_04.jpg')) {
-                            $buildingType = 'church';
+                            $buildingType = 'Church';
                         } elseif (mp_ends_with($building->lastChild()->getAttribute('src'), 'wtown_05.jpg')) {
-                            $buildingType = 'bank';
+                            $buildingType = 'Bank';
                         } elseif (mp_ends_with($building->lastChild()->getAttribute('src'), 'wtown_06.jpg')) {
-                            $buildingType = 'merchant';
+                            $buildingType = 'Merchant';
                         } elseif (mp_ends_with($building->lastChild()->getAttribute('src'), 'wtown_07.jpg')) {
-                            $buildingType = 'guild';
+                            $buildingType = 'Guild';
                         }
                     }
                 }
@@ -70,29 +70,37 @@ class BuildingParser extends Parser
                && $node->firstChild()->firstChild()->getAttribute('size') == 3;
     }
 
-    private static function parseBuilding(simple_html_dom_node $node, $buildingType = 'house'): Building
+    private static function parseBuilding(simple_html_dom_node $node, $buildingType = 'House'): Building
     {
+//        if (strpos($node->innertext(), '5sp per night') !== false) {
+//        }
         $building = new Building(intval($node->firstChild()->firstChild()->firstChild()->innertext()), $buildingType);
         switch ($building->getType()) {
-            case 'house':
+            case 'House':
                 foreach ($node->childNodes() as $childNode) {
                     if ($childNode->tag == 'font' && $childNode->innertext() != '-This building is empty.') {
                         $building->addNPC(NPCParser::parseNPC($childNode));
                     }
                 }
                 break;
-            case 'merchant':
+            case 'Merchant':
+                $label = $node->childNodes(1)->childNodes(1)->text();
+                $building->setTitle($node->childNodes(1)->childNodes(0)->text());
+                if (mp_starts_with($label, '(') && mp_ends_with($label, ')')) {
+                    $building->setTitle($building->getTitle() . ' ' . $label);
+                    $building->setType('Inn');
+                }
                 foreach ($node->childNodes() as $childNode) {
                     if ($childNode->tag == 'font') {
                         $building->setProducts(self::parseProductTable($childNode));
-                        $cleanChildNode = $childNode->removeChild(0, 1);
+                        $cleanChildNode = $childNode->removeChild(0, $building->getType() == 'Merchant' ? 1 : 3);
                         $cleanChildNode = $cleanChildNode->removeChild($cleanChildNode->lastChild());
                         $cleanChildNode = $cleanChildNode->removeChild($cleanChildNode->lastChild());
                         $building->addNPC(NPCParser::parseNPC($cleanChildNode), true);
                     }
                 }
                 break;
-            case 'guild':
+            case 'Guild':
                 $building->setTitle($node->childNodes(1)->childNodes(0)->text());
                 foreach ($node->childNodes(1)->childNodes() as $nodeChild) {
                     if ($nodeChild->tag == 'font') {
@@ -100,7 +108,7 @@ class BuildingParser extends Parser
                     }
                 }
                 break;
-            case 'guardhouse':
+            case 'Guardhouse':
                 $building->setTitle($node->childNodes(1)->childNodes(0)->text());
                 foreach ($node->childNodes(1)->childNodes() as $nodeChild) {
                     if ($nodeChild->tag == 'font') {
@@ -108,7 +116,7 @@ class BuildingParser extends Parser
                     }
                 }
                 break;
-            case 'church':
+            case 'Church':
                 $building->setTitle($node->childNodes(1)->childNodes(0)->text());
                 foreach ($node->childNodes(1)->childNodes() as $nodeChild) {
                     if ($nodeChild->tag == 'font' && $nodeChild->firstChild()->tag == 'b') {
@@ -135,10 +143,11 @@ class BuildingParser extends Parser
             if ($row === $table->firstChild()->firstChild()) {
                 continue;
             }
-            $name          = $row->childNodes(1)->firstChild()->innertext();
-            $cost          = $row->childNodes(2)->firstChild()->innertext();
-            $inStock       = intval($row->childNodes(3)->firstChild()->innertext());
-            $productList[] = new Product($name, $cost, $inStock);
+            $name                      = $row->childNodes(1)->firstChild()->innertext();
+            $cost                      = $row->childNodes(2)->firstChild()->innertext();
+            $inStock                   = intval($row->childNodes(3)->firstChild()->innertext());
+            $product                   = new Product($name, $cost, $inStock);
+            $productList[$product->id] = $product;
         }
         return $productList;
     }

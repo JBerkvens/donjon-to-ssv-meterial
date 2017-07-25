@@ -32,7 +32,7 @@ class NPC extends JsonObject
                 <td><label>Save</label></td>
                 <td>
                     <input type="checkbox" name="npc___save[]" value="<?= $this->id ?>" title="Save" checked>
-                    <button name="save_single" value="<?= $this->id ?>" title="Save Single">Save <?= $this->name ?></button>
+                    <button name="save_single" value="<?= $this->id ?>" title="Save Single" style="float: right;">Save <?= $this->name ?></button>
                 </td>
             </tr>
             <tr>
@@ -146,6 +146,9 @@ class NPC extends JsonObject
     public function toWordPress()
     {
         $title = $this->name;
+        if ($this->type == 'spouse' || $this->type == 'child') {
+            $title .= ' (' . $this->type . ')';
+        }
         $content = $this->description;
 
         /** @var \wpdb $wpdb */

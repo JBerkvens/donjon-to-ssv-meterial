@@ -8,7 +8,9 @@ use Wizardawn\Models\City;
 use Wizardawn\Models\NPC;
 
 require_once 'Converter.php';
-
+?>
+    <h1>Convert Wizardawn Files to the SSV Material theme</h1>
+<?php
 if ($_SERVER['REQUEST_METHOD'] != 'POST') {
     ?>
     <form action="#" method="post" enctype="multipart/form-data">
@@ -31,6 +33,11 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
         case 'upload':
             $nextPage = 'npcs';
             if ($_POST['submit'] == 'Test') {
+                $city = $_SESSION['city'];
+                if ($city != null) {
+//                    mp_var_export($city, true);
+//                    break;
+                }
                 $fileContent = file_get_html(Parser::URL . 'test/001.html');
             } else {
                 if (!function_exists('wp_handle_upload')) {
@@ -52,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
             }
             break;
         case 'npcs':
-            if (isset($_POST['skip'])) {
+            if (isset($_POST['next'])) {
                 $nextPage = 'buildings';
                 break;
             }
@@ -77,8 +84,12 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
             }
             break;
         case 'buildings':
-            if (isset($_POST['skip'])) {
+            if (isset($_POST['next'])) {
                 $nextPage = 'city';
+                break;
+            }
+            if (isset($_POST['previous'])) {
+                $nextPage = 'npcs';
                 break;
             }
             /** @var City $city */
@@ -110,7 +121,10 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
             $city = $_SESSION['city'];
             ?>
             <form action="#" method="POST">
-                <input type="submit" name="skip" id="submit" class="button button-primary button-large" value="Go to Buildings"><br/>
+                <div style="padding-top: 10px;">
+                    <input type="submit" name="next" class="button button-primary button-large" value="Buildings >">
+                </div>
+                <br/>
                 <input type="hidden" name="save" value="npcs">
                 <?php
                 foreach ($city->getBuildings() as $key => $building) {
@@ -131,7 +145,11 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
             $city = $_SESSION['city'];
             ?>
             <form action="#" method="POST">
-                <input type="submit" name="skip" id="submit" class="button button-primary button-large" value="Go to City"><br/>
+                <div style="padding-top: 10px;">
+                    <input type="submit" name="previous" id="submit" class="button button-primary button-large" value="< NPC's">
+                    <input type="submit" name="next" id="submit" class="button button-primary button-large" value="City >">
+                </div>
+                <br/>
                 <input type="hidden" name="save" value="buildings">
                 <?php
                 foreach ($city->getBuildings() as $key => $building) {
