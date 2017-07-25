@@ -35,7 +35,6 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
             if ($_POST['submit'] == 'Test') {
                 $city = $_SESSION['city'];
                 if ($city != null) {
-//                    mp_var_export($city, true);
 //                    break;
                 }
                 $fileContent = file_get_html(Parser::URL . 'test/001.html');

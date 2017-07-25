@@ -8,6 +8,7 @@
 
 namespace Wizardawn\Parser;
 
+use ImageCombiner;
 use simple_html_dom;
 use simple_html_dom_node;
 use ssv_material_parser\Parser;
@@ -45,7 +46,7 @@ class MapParser extends Parser
             preg_match('/\/[\s\S]+?\/([\s\S]+?)"/', (string)$image, $image);
             $srcImagePaths[] = 'http://wizardawn.and-mag.com/maps/'.$image[1];
         }
-//        $map->setImage(\ImageCombiner::convertToSingle($srcImagePaths, $mapWidth - 100));
+        $map->setImage(ImageCombiner::convertToSingle($srcImagePaths, $mapWidth - 100));
 
         return $map;
     }

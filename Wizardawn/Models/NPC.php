@@ -129,6 +129,10 @@ class NPC extends JsonObject
             'arms_armor',
         ];
         foreach ($fields as $field) {
+            if (!isset($_POST['npc___'.$field][$id])) {
+                mp_var_export($field);
+                mp_var_export($_POST, true);
+            }
             $value = $_POST['npc___'.$field][$id];
             if (!empty($_POST['npc___'.$field][$id])) {
                 $npc->$field = $value;
@@ -153,16 +157,7 @@ class NPC extends JsonObject
 
         /** @var \wpdb $wpdb */
         global $wpdb;
-        $sql = "SELECT p.ID FROM $wpdb->posts AS p";
-        $keysToCheck = ['height', 'weight'];
-        foreach ($keysToCheck as $key) {
-            $sql .= " LEFT JOIN $wpdb->postmeta AS pm_$key ON pm_$key.post_id = p.ID";
-        }
-        $sql .= " WHERE p.post_type = 'npc' AND p.post_title = '$title' AND p.post_content = '$content'";
-        foreach ($keysToCheck as $key) {
-            $value = $this->$key;
-            $sql .= " AND pm_$key.meta_key = '$key' AND pm_$key.meta_value = '$value'";
-        }
+        $sql = "SELECT p.ID FROM $wpdb->posts AS p WHERE p.post_type = 'npc' AND p.post_title = '$title' AND p.post_content = '$content'";
         /** @var \WP_Post $foundNPC */
         $foundNPC = $wpdb->get_row($sql);
         if ($foundNPC) {

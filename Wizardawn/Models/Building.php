@@ -291,8 +291,14 @@ class Building extends JsonObject
                 continue;
             }
             $value = $_POST['building___' . $field][$id];
-            if (!empty($_POST['building___' . $field][$id])) {
-                $building->$field = $value;
+            if (!empty($value)) {
+                if ($field == 'products') {
+                    $building->$field = Product::getFromArray($value);
+                } elseif ($field == 'spells') {
+                    $building->$field = Spell::getFromArray($value);
+                } else {
+                    $building->$field = $value;
+                }
             }
             if ($unset) {
                 unset($_POST['building___' . $field][$id]);
@@ -304,23 +310,14 @@ class Building extends JsonObject
     /**
      * @return int|\WP_Error
      */
-    public function toWordPress()
+    public function toWordPress(): int
     {
         $title   = $this->title;
         $content = $this->getWordPressContent();
 
         /** @var \wpdb $wpdb */
         global $wpdb;
-        $sql         = "SELECT p.ID FROM $wpdb->posts AS p";
-        $keysToCheck = ['height', 'weight'];
-        foreach ($keysToCheck as $key) {
-            $sql .= " LEFT JOIN $wpdb->postmeta AS pm_$key ON pm_$key.post_id = p.ID";
-        }
-        $sql .= " WHERE p.post_type = 'npc' AND p.post_title = '$title' AND p.post_content = '$content'";
-        foreach ($keysToCheck as $key) {
-            $value = $this->$key;
-            $sql   .= " AND pm_$key.meta_key = '$key' AND pm_$key.meta_value = '$value'";
-        }
+        $sql         = "SELECT p.ID FROM $wpdb->posts AS p WHERE p.post_type = 'area' AND p.post_title = '$title' AND p.post_content = '$content'";
         /** @var \WP_Post $foundNPC */
         $foundNPC = $wpdb->get_row($sql);
         if ($foundNPC) {
@@ -328,13 +325,17 @@ class Building extends JsonObject
             return $foundNPC->ID;
         }
 
-        $thisTypeTerm = term_exists(ucfirst($this->type), 'npc_type', 0);
+        $buildingTerm = term_exists('Building', 'area_type', 0);
+        if (!$buildingTerm) {
+            $buildingTerm = wp_insert_term('Building', 'area_type', ['parent' => 0]);
+        }
+        $thisTypeTerm = term_exists(ucfirst($this->type), 'area_type', $buildingTerm['term_taxonomy_id']);
         if (!$thisTypeTerm) {
-            $thisTypeTerm = wp_insert_term(ucfirst($this->type), 'npc_type', ['parent' => 0]);
+            $thisTypeTerm = wp_insert_term(ucfirst($this->type), 'area_type', ['parent' => $buildingTerm['term_taxonomy_id']]);
         }
 
         $custom_tax = [
-            'npc_type' => [
+            'area_type' => [
                 $thisTypeTerm['term_taxonomy_id'],
             ],
         ];
@@ -343,36 +344,27 @@ class Building extends JsonObject
             [
                 'post_title'   => $title,
                 'post_content' => $content,
-                'post_type'    => 'npc',
+                'post_type'    => 'area',
                 'post_status'  => 'publish',
                 'tax_input'    => $custom_tax,
             ]
         );
-        foreach ($this as $key => $value) {
-            if ($key == 'name' || $key == 'description' || $key == 'html') {
-                continue;
-            }
-            update_post_meta($wp_id, $key, $value);
-        }
         return $wp_id;
     }
 
     private function getWordPressContent(): string {
-        mp_var_export($this, true);
         ob_start();
-        switch ($this->type) {
-            case 'House':
-                /** @var string $npc */
-                foreach ($this->npcs as $npc) {
-                    echo '[npc-' . $npc . ']';
-                }
-                break;
-            default:
-                /** @var string $npc */
-                foreach ($this->npcs as $npc) {
-                    echo '[npc-' . $npc . '-li]';
-                }
-                break;
+        /** @var string $npcID */
+        foreach ($this->npcs as $npcID) {
+            echo '[npc-' . $npcID . ']';
+        }
+        foreach ($this->products as $product) {
+            $productID = $product->toWordPress();
+            echo '[product-'.$productID.'-'.$product->cost.'-'.$product->inStock.']';
+        }
+        foreach ($this->spells as $spell) {
+            $spellID = $spell->toWordPress();
+            echo '[spell-' . $spellID . '-' . $spell->cost . ']';
         }
         return ob_get_clean();
     }

@@ -28,10 +28,6 @@ class NPCParser extends Parser
         if ($type !== null) {
             $npc->profession = explode(':', ucfirst(strtolower($node->childNodes(0)->text())))[0];
             $info            = explode(' ', $node->childNodes(1)->text());
-            if (!isset($info[1])) {
-                mp_var_export($node);
-                mp_var_export($info, 1);
-            }
             $npc->level      = $info[1];
             $npc->class      = explode(']', $info[2])[0];
             $node            = $node->removeChild(0, 1);
