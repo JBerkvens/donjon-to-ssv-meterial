@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
             if ($_POST['submit'] == 'Test') {
                 $city = $_SESSION['city'];
                 if ($city != null) {
-//                    break;
+                    break;
                 }
                 $fileContent = file_get_html(Parser::URL . 'test/001.html');
             } else {
