@@ -2,6 +2,8 @@
 
 namespace Wizardawn\Models;
 
+use Exception;
+
 class Map extends JsonObject
 {
     /** @var MapLabel[] */
@@ -14,6 +16,21 @@ class Map extends JsonObject
         $this->labels[$label->getID()] = $label;
     }
 
+    public static function updateLabel($label, $wp_id)
+    {
+        /** @var City $city */
+        $city = $_SESSION['city'];
+        $map = $city->getMap();
+        foreach ($map->labels as &$mapLabel) {
+            if ($mapLabel->buildingID == $label) {
+                $mapLabel->buildingID = $wp_id;
+                $mapLabel->visible = true;
+            }
+        }
+        $city->setMap($map);
+        $_SESSION['city'] = $city;
+    }
+
     public function setWidth(int $width)
     {
         $this->width = $width;
@@ -22,6 +39,24 @@ class Map extends JsonObject
     public function setImage(string $image)
     {
         $this->image = $image;
+    }
+
+    public function getImage()
+    {
+        return $this->image;
+    }
+
+    public function updateFromPOST()
+    {
+        foreach ($this->labels as &$mapLabel) {
+            if ($mapLabel->visible) {
+                $translate = $_POST['label_translations'][$mapLabel->buildingID];
+                preg_match("/\((.*?)p?x?, (.*?)p?x?\)/", $translate, $matches);
+                list($original, $left, $top) = $matches;
+                $mapLabel->left += $left;
+                $mapLabel->top += $top;
+            }
+        }
     }
 
     /**
@@ -146,6 +181,41 @@ class Map extends JsonObject
 
     public function getHTML()
     {
-        return '###MAP_PLACEHOLDER###';
+        ob_start();
+        ?>
+        <div style="overflow-x: auto; overflow-y: hidden;">
+            <div id="map" style="margin: auto; position: relative">
+                <img id="map_image" src="<?= $this->image ?>"/>
+                <?php $number = 1; ?>
+                <?php foreach ($this->labels as $mapLabel): ?>
+                    <?php if ($mapLabel->visible): ?>
+                        <aside draggable="true" class="mp-draggable area-label" style="left: <?= $mapLabel->left-13 ?>px; top: <?= $mapLabel->top-10 ?>px">
+                            <?= $number ?>
+                            <input type="hidden" name="label_translations[<?= $mapLabel->buildingID ?>]" value="translate(0px, 0px)">
+                        </aside>
+                        <?php ++$number; ?>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <?php
+        return ob_get_clean();
+    }
+
+    public function getVisibleBuildings()
+    {
+        $visibleLabels = array_filter($this->labels, function ($mapLabel) {
+            return $mapLabel->visible;
+        });
+        return array_column($visibleLabels, 'buildingID');
+    }
+
+    public function getLabelTranslations()
+    {
+        $labelTranslations = [];
+        foreach ($this->labels as $mapLabel) {
+            $labelTranslations[$mapLabel->buildingID] = [$mapLabel->left - 13, $mapLabel->top - 10];
+        }
+        return $labelTranslations;
     }
 }

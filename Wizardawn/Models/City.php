@@ -20,7 +20,7 @@ class City extends JsonObject
         return $this->title;
     }
 
-    public function setMap($map)
+    public function setMap(Map $map)
     {
         $this->map = $map;
     }
@@ -68,7 +68,7 @@ class City extends JsonObject
             <tr>
                 <td><label>Save</label></td>
                 <td>
-                    <select name="save" title="Save">
+                    <select name="saveCity" title="Save">
                         <option value="true">Yes</option>
                         <option value="false">No</option>
                     </select>
@@ -77,11 +77,10 @@ class City extends JsonObject
             <tr>
                 <td><label>Include Map</label></td>
                 <td>
-                    <select name="map" title="Include Map">
+                    <select name="saveMap" title="Include Map">
                         <option value="true">Yes</option>
                         <option value="false">No</option>
                     </select>
-                    <input name="map" value="<?= $this->map->getID() ?>" title="Save Map">
                 </td>
             </tr>
             <tr>
@@ -102,6 +101,58 @@ class City extends JsonObject
         ?>
         <input type="hidden" name="city" value='<?= $this->serialize() ?>'>
         <?php
+        return ob_get_clean();
+    }
+
+    public function toWordPress()
+    {
+        $title   = $this->title;
+        $content = $this->getWordPressContent();
+
+        /** @var \wpdb $wpdb */
+        global $wpdb;
+        $sql         = "SELECT p.ID FROM $wpdb->posts AS p WHERE p.post_type = 'area' AND p.post_title = '$title' AND p.post_content = '$content'";
+        /** @var \WP_Post $foundCity */
+        $foundCity = $wpdb->get_row($sql);
+        if ($foundCity) {
+            // The NPC has been found (not saving another instance but returning the found ID).
+            return $foundCity->ID;
+        }
+
+        $cityTerm = term_exists('City', 'area_type', 0);
+        if (!$cityTerm) {
+            $cityTerm = wp_insert_term('City', 'area_type', ['parent' => 0]);
+        }
+
+        $custom_tax = [
+            'area_type' => [
+                $cityTerm['term_taxonomy_id'],
+            ],
+        ];
+
+        $wp_id = wp_insert_post(
+            [
+                'post_title'   => $title,
+                'post_content' => $content,
+                'post_type'    => 'area',
+                'post_status'  => 'publish',
+                'tax_input'    => $custom_tax,
+            ]
+        );
+        update_post_meta($wp_id, 'visible_objects', $this->getMap()->getVisibleBuildings());
+        update_post_meta($wp_id, 'label_translations', $this->getMap()->getLabelTranslations());
+        $mapImageID = media_sideload_image($this->getMap()->getImage(), $wp_id, 'The map of ' . $this->title, 'id');
+        update_post_meta($wp_id, 'map_image_id', $mapImageID);
+        return $wp_id;
+    }
+
+    private function getWordPressContent()
+    {
+        $visibleBuildings = $this->getMap()->getVisibleBuildings();
+        ob_start();
+        foreach ($visibleBuildings as $building) {
+            echo '[area-'.$building.']';
+        }
         return ob_get_clean();
     }
 }

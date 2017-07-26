@@ -1,5 +1,7 @@
 <?php
 
+use ssv_material_parser\Parser;
+
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -18,7 +20,7 @@ register_activation_hook(SSV_MATERIAL_PARSER_PATH . 'ssv-material-parser.php', '
 
 function ssv_material_parser_enquire_admin_scripts()
 {
-//    wp_enqueue_script('ssv_material_parser_npcs', MP_DD::URL . '/js/mp-dd-npcs.js');
+    wp_enqueue_script('ssv_material_parser_draggable', Parser::URL. 'js/ssv-material-parser-draggable.js', ['jquery']);
 }
 
 add_action('admin_enqueue_scripts', 'ssv_material_parser_enquire_admin_scripts', 12);

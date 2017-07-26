@@ -3,6 +3,7 @@
 namespace ssv_material_parser;
 
 use DOMDocument;
+use Exception;
 use Wizardawn\Models\City;
 use Wizardawn\Parser\BuildingParser;
 use Wizardawn\Parser\MapParser;
@@ -35,7 +36,7 @@ abstract class Converter extends Parser
 
         $city = new City();
         $city->setTitle($html->getElementByTagName('font')->text());
-//        $city->setMap(MapParser::parseMap($html));
+        $city->setMap(MapParser::parseMap($html));
         BuildingParser::parseBuildings($city, $html);
         return $city;
     }
@@ -66,5 +67,15 @@ abstract class Converter extends Parser
             $file->loadHTML($html);
         }
         return self::cleanCode($file->saveHTML());
+    }
+
+    public static function updateID($id, $wp_id)
+    {
+        /** @var City $city */
+        $city = $_SESSION['city'];
+        if (!$city->replaceID($id, $wp_id)) {
+            throw new Exception('WordPress ID not changed in City Object');
+        }
+        $_SESSION['city'] = $city;
     }
 }

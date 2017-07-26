@@ -66,9 +66,10 @@ class JsonObject
 
     public function replaceID($id, $wp_id): bool
     {
+        $returner = false;
         if ($this->id == $id) {
             $this->id = $wp_id;
-            return true;
+            $returner = true;
         } else {
             $vars = get_object_vars($this);
             foreach ($vars as $varKey => $var) {
@@ -77,23 +78,23 @@ class JsonObject
                         if ($key == $id) {
                             $item = $wp_id;
                             $this->$varKey = $var;
-                            return true;
+                            $returner = true;
                         }
                         if ($item instanceof JsonObject) {
                             if ($item->replaceID($id, $wp_id)) {
                                 $this->$varKey = $var;
-                                return true;
+                                $returner = true;
                             }
                         }
                     }
                 } elseif ($var instanceof JsonObject) {
                     if ($var->replaceID($id, $wp_id)) {
                         $this->$varKey = $var;
-                        return true;
+                        $returner = true;
                     }
                 }
             }
         }
-        return false;
+        return $returner;
     }
 }

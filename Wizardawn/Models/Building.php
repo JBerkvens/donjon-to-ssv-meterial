@@ -2,7 +2,9 @@
 
 namespace Wizardawn\Models;
 
+use Exception;
 use mp_dd\MP_DD;
+use ssv_material_parser\Converter;
 
 class Building extends JsonObject
 {
@@ -16,12 +18,12 @@ class Building extends JsonObject
     /** @var Spell[] */
     protected $spells = [];
 
-    public function __construct(int $label, string $type)
+    public function __construct(int $buildingID, string $type)
     {
         parent::__construct();
-        $this->label = $label;
+        $this->label = $buildingID;
         $this->type  = $type;
-        $this->title = 'Building ' . $label;
+        $this->title = 'Building ' . $buildingID;
     }
 
     public function getID()
@@ -280,6 +282,7 @@ class Building extends JsonObject
     public static function getFromPOST($id, $unset = false)
     {
         $building = new self($_POST['building___label'][$id], $_POST['building___type'][$id]);
+        $building->setID($id);
         $fields   = [
             'title',
             'npcs',
@@ -318,11 +321,13 @@ class Building extends JsonObject
         /** @var \wpdb $wpdb */
         global $wpdb;
         $sql         = "SELECT p.ID FROM $wpdb->posts AS p WHERE p.post_type = 'area' AND p.post_title = '$title' AND p.post_content = '$content'";
-        /** @var \WP_Post $foundNPC */
-        $foundNPC = $wpdb->get_row($sql);
-        if ($foundNPC) {
-            // The NPC has been found (not saving another instance but returning the found ID).
-            return $foundNPC->ID;
+        /** @var \WP_Post $foundBuilding */
+        $foundBuilding = $wpdb->get_row($sql);
+        if ($foundBuilding) {
+            // The Building has been found (not saving another instance but returning the found ID).
+            Converter::updateID($this->id, $foundBuilding->ID);
+            Map::updateLabel($this->label, $foundBuilding->ID);
+            return $foundBuilding->ID;
         }
 
         $buildingTerm = term_exists('Building', 'area_type', 0);
@@ -331,11 +336,33 @@ class Building extends JsonObject
         }
         $thisTypeTerm = term_exists(ucfirst($this->type), 'area_type', $buildingTerm['term_taxonomy_id']);
         if (!$thisTypeTerm) {
-            $thisTypeTerm = wp_insert_term(ucfirst($this->type), 'area_type', ['parent' => $buildingTerm['term_taxonomy_id']]);
+            switch ($this->type) {
+                case 'Merchant':
+                    $color = '#aa00ff';
+                    break;
+                case 'Guardhouse':
+                    $color = '#00b0ff';
+                    break;
+                case 'Church':
+                    $color = '#d50000';
+                    break;
+                case 'Guild':
+                    $color = '#00c853';
+                    break;
+                case 'Inn':
+                    $color = '#eeff41';
+                    break;
+                case 'House':
+                default:
+                    $color = '#a0a0a0';
+                    break;
+            }
+            $thisTypeTerm = wp_insert_term(ucfirst($this->type), 'area_type', ['description' => $color, 'parent' => $buildingTerm['term_taxonomy_id']]);
         }
 
         $custom_tax = [
             'area_type' => [
+                $buildingTerm['term_taxonomy_id'],
                 $thisTypeTerm['term_taxonomy_id'],
             ],
         ];
@@ -349,6 +376,9 @@ class Building extends JsonObject
                 'tax_input'    => $custom_tax,
             ]
         );
+        update_post_meta($wp_id, 'visible_objects', $this->npcs);
+        Converter::updateID($this->id, $wp_id);
+        Map::updateLabel($this->label, $wp_id);
         return $wp_id;
     }
 

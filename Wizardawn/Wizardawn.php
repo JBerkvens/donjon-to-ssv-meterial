@@ -5,6 +5,7 @@ namespace ssv_material_parser;
 use Exception;
 use Wizardawn\Models\Building;
 use Wizardawn\Models\City;
+use Wizardawn\Models\Map;
 use Wizardawn\Models\NPC;
 
 require_once 'Converter.php';
@@ -33,8 +34,8 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
         case 'upload':
             $nextPage = 'npcs';
             if ($_POST['submit'] == 'Test') {
-                $city = $_SESSION['city'];
-                if ($city != null) {
+                if (isset($_SESSION['city'])) {
+                    $city = $_SESSION['city'];
                     break;
                 }
                 $fileContent = file_get_html(Parser::URL . 'test/001.html');
@@ -62,23 +63,14 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
                 $nextPage = 'buildings';
                 break;
             }
-            /** @var City $city */
-            $city = $_SESSION['city'];
             if (isset($_POST['save_single'])) {
                 $nextPage = 'npcs';
                 $id = $_POST['save_single'];
-                $wp_id = NPC::getFromPOST($id, true)->toWordPress();
-                if (!$city->replaceID($id, $wp_id)) {
-                    throw new Exception('WordPress ID not changed in City Object');
-                }
-                $_SESSION['city'] = $city;
+                NPC::getFromPOST($id, true)->toWordPress();
             } else {
                 $nextPage = 'buildings';
                 foreach ($_POST['npc___save'] as $id) {
-                    $wp_id = NPC::getFromPOST($id)->toWordPress();
-                    if (!$city->replaceID($id, $wp_id)) {
-                        throw new Exception('WordPress ID not changed in City Object');
-                    }
+                    NPC::getFromPOST($id)->toWordPress();
                 }
             }
             break;
@@ -91,32 +83,39 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
                 $nextPage = 'npcs';
                 break;
             }
-            /** @var City $city */
-            $city = $_SESSION['city'];
             if (isset($_POST['save_single'])) {
                 $nextPage = 'buildings';
                 $id = $_POST['save_single'];
-                $wp_id = Building::getFromPOST($id, true)->toWordPress();
-                if (!$city->replaceID($id, $wp_id)) {
-                    throw new Exception('WordPress ID not changed in City Object');
-                }
-                $_SESSION['city'] = $city;
+                Building::getFromPOST($id, true)->toWordPress();
             } else {
                 $nextPage = 'city';
                 foreach ($_POST['building___save'] as $id) {
-                    $wp_id = Building::getFromPOST($id)->toWordPress();
-                    if (!$city->replaceID($id, $wp_id)) {
-                        throw new Exception('WordPress ID not changed in City Object');
-                    }
+                    Building::getFromPOST($id)->toWordPress();
                 }
             }
             break;
         case 'city':
+            if (isset($_POST['previous'])) {
+                $nextPage = 'buildings';
+                break;
+            }
+            $nextPage = 'done';
+            /** @var City $city */
+            $city = $_SESSION['city'];
+            if ($_POST['saveCity'] == 'false') {
+                break;
+            }
+            if ($_POST['saveMap'] == 'true') {
+                $city->getMap()->updateFromPOST();
+            }
+            $city->toWordPress();
+            mp_var_export($city);
             break;
     }
 
     switch ($nextPage) {
         case 'npcs':
+            /** @var City $city */
             $city = $_SESSION['city'];
             ?>
             <form action="#" method="POST">
@@ -141,6 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
             <?php
             break;
         case 'buildings':
+            /** @var City $city */
             $city = $_SESSION['city'];
             ?>
             <form action="#" method="POST">
@@ -158,7 +158,23 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
                 }
                 echo get_submit_button('Save buildings');
                 ?>
-                <input type="hidden" name="next_page" value="buildings">
+            </form>
+            <?php
+            break;
+        case 'city':
+            /** @var City $city */
+            $city = $_SESSION['city'];
+            ?>
+            <form action="#" method="POST">
+                <div style="padding-top: 10px;">
+                    <input type="submit" name="previous" id="submit" class="button button-primary button-large" value="< Buildings">
+                </div>
+                <br/>
+                <input type="hidden" name="save" value="city">
+                <?php
+                echo $city->getHTML();
+                echo get_submit_button('Save city');
+                ?>
             </form>
             <?php
             break;

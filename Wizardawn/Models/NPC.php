@@ -8,6 +8,9 @@
 
 namespace Wizardawn\Models;
 
+use Exception;
+use ssv_material_parser\Converter;
+
 class NPC extends JsonObject
 {
     public $type = 'citizen';
@@ -115,6 +118,7 @@ class NPC extends JsonObject
     public static function getFromPOST($id, $unset = false)
     {
         $npc = new self();
+        $npc->setID($id);
         $fields = [
             'type',
             'profession',
@@ -161,6 +165,7 @@ class NPC extends JsonObject
         $foundNPC = $wpdb->get_row($sql);
         if ($foundNPC) {
             // The NPC has been found (not saving another instance but returning the found ID).
+            Converter::updateID($this->id, $foundNPC->ID);
             return $foundNPC->ID;
         }
 
@@ -190,6 +195,7 @@ class NPC extends JsonObject
             }
             update_post_meta($wp_id, $key, $value);
         }
+        Converter::updateID($this->id, $wp_id);
         return $wp_id;
     }
 }
