@@ -130,8 +130,7 @@ class NPC extends JsonObject
         ];
         foreach ($fields as $field) {
             if (!isset($_POST['npc___'.$field][$id])) {
-                mp_var_export($field);
-                mp_var_export($_POST, true);
+                throw new \Exception('The max_input_vars is set to low (not all fields are available in $_POST).');
             }
             $value = $_POST['npc___'.$field][$id];
             if (!empty($_POST['npc___'.$field][$id])) {
@@ -178,8 +177,8 @@ class NPC extends JsonObject
 
         $wp_id = wp_insert_post(
             [
-                'post_title'   => $this->name,
-                'post_content' => $this->description,
+                'post_title'   => $title,
+                'post_content' => $content,
                 'post_type'    => 'npc',
                 'post_status'  => 'publish',
                 'tax_input'    => $custom_tax,

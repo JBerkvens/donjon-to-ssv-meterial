@@ -8,6 +8,9 @@ use Wizardawn\Models\City;
 use Wizardawn\Models\NPC;
 
 require_once 'Converter.php';
+
+ini_set('max_input_vars', '100000');
+
 ?>
     <h1>Convert Wizardawn Files to the SSV Material theme</h1>
 <?php
@@ -26,9 +29,6 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
     <?php
 } else {
     $nextPage = '';
-    if (!isset($_POST['save'])) {
-        mp_var_export($_POST, 1);
-    }
     switch ($_POST['save']) {
         case 'upload':
             $nextPage = 'npcs';

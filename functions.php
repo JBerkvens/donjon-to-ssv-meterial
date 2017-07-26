@@ -6,10 +6,14 @@ if (!defined('ABSPATH')) {
 
 function ssv_material_parser_register_plugin()
 {
-    wp_insert_term('Cities', 'building_category', array('parent' => 0));
+    wp_insert_term('City', 'area_category', array('parent' => 0));
+    wp_insert_term('Building', 'area_category', array('parent' => 0));
+    wp_insert_term('Room', 'area_category', array('parent' => 0));
+    wp_insert_term('Forest', 'area_category', array('parent' => 0));
+    wp_insert_term('Mountain', 'area_category', array('parent' => 0));
+    wp_insert_term('Ocean', 'area_category', array('parent' => 0));
+    wp_insert_term('Lake', 'area_category', array('parent' => 0));
 }
-
-register_activation_hook(SSV_MATERIAL_PARSER_PATH . 'ssv-material-parser.php', 'ssv_material_parser_register_plugin');
 register_activation_hook(SSV_MATERIAL_PARSER_PATH . 'ssv-material-parser.php', 'ssv_material_parser_register_plugin');
 
 function ssv_material_parser_enquire_admin_scripts()
