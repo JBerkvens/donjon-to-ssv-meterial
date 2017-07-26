@@ -388,13 +388,23 @@ class Building extends JsonObject
         foreach ($this->npcs as $npcID) {
             echo '[npc-' . $npcID . ']';
         }
-        foreach ($this->products as $product) {
-            $productID = $product->toWordPress();
-            echo '[product-'.$productID.'-'.$product->cost.'-'.$product->inStock.']';
+        if (!empty($this->products)) {
+            echo '<h3>Products</h3>';
+            echo '<table class="striped">';
+            foreach ($this->products as $product) {
+                $productID = $product->toWordPress();
+                echo '[product-'.$productID.'-'.$product->cost.'-'.$product->inStock.']';
+            }
+            echo '</table>';
         }
-        foreach ($this->spells as $spell) {
-            $spellID = $spell->toWordPress();
-            echo '[spell-' . $spellID . '-' . $spell->cost . ']';
+        if (!empty($this->spells)) {
+            echo '<h3>Spells</h3>';
+            echo '<table class="striped">';
+            foreach ($this->spells as $spell) {
+                $spellID = $spell->toWordPress();
+                echo '[spell-' . $spellID . '-' . $spell->cost . ']';
+            }
+            echo '</table>';
         }
         return ob_get_clean();
     }
