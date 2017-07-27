@@ -19,13 +19,12 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
     ?>
     <form action="#" method="post" enctype="multipart/form-data">
         <input type="hidden" name="save" value="upload">
-        <input type="file" name="html_file"><br/>
+        <input type="file" name="html_file" required><br/>
         <select name="parse_output">
             <option value="mp_dd">D&D Objects</option>
             <option value="html">HTML</option>
         </select><br/>
         <input type="submit" value="Upload" name="submit">
-        <input type="submit" value="Test" name="submit">
     </form>
     <?php
 } else {
@@ -33,27 +32,21 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
     switch ($_POST['save']) {
         case 'upload':
             $nextPage = 'npcs';
-            if ($_POST['submit'] == 'Test') {
-                if (isset($_SESSION['city'])) {
-                    $city = $_SESSION['city'];
-                    break;
-                }
-                $fileContent = file_get_html(Parser::URL . 'test/001.html');
-            } else {
-                if (!function_exists('wp_handle_upload')) {
-                    require_once(ABSPATH . 'wp-admin/includes/file.php');
-                }
-                $uploadedFile    = $_FILES['html_file'];
-                $uploadOverrides = array('test_form' => false);
-                $movedFile       = wp_handle_upload($uploadedFile, $uploadOverrides);
-                if (!$movedFile || isset($movedFile['error']) || $movedFile['type'] != 'text/html') {
-                    echo $movedFile['error'];
-                    return;
-                }
-                $fileContent = file_get_html($movedFile['file']);
+            if (!function_exists('wp_handle_upload')) {
+                require_once(ABSPATH . 'wp-admin/includes/file.php');
             }
+            $uploadedFile    = $_FILES['html_file'];
+            $uploadOverrides = array('test_form' => false);
+            $movedFile       = wp_handle_upload($uploadedFile, $uploadOverrides);
+            if (!$movedFile || isset($movedFile['error']) || $movedFile['type'] != 'text/html') {
+                echo $movedFile['error'];
+                return;
+            }
+            $fileContent = file_get_html($movedFile['file']);
             $city             = Converter::Convert($fileContent);
             $_SESSION['city'] = $city;
+            $_SESSION['saved_npcs'] = [];
+            $_SESSION['saved_buildings'] = [];
             if ($_POST['parse_output'] == 'html') {
                 ?><textarea><?= $city->getHTML() ?></textarea><?php
             }
@@ -109,7 +102,6 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
                 $city->getMap()->updateFromPOST();
             }
             $city->toWordPress();
-            mp_var_export($city);
             break;
     }
 
@@ -123,6 +115,8 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
                     <input type="submit" name="next" class="button button-primary button-large" value="Buildings >">
                 </div>
                 <br/>
+                <?= get_submit_button('Save all NPCs'); ?>
+                <br/>
                 <input type="hidden" name="save" value="npcs">
                 <?php
                 foreach ($city->getBuildings() as $key => $building) {
@@ -134,7 +128,6 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
                         }
                     }
                 }
-                echo get_submit_button('Save NPCs');
                 ?>
             </form>
             <?php
@@ -149,6 +142,8 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
                     <input type="submit" name="next" id="submit" class="button button-primary button-large" value="City >">
                 </div>
                 <br/>
+                <?= get_submit_button('Save all Buildings'); ?>
+                <br/>
                 <input type="hidden" name="save" value="buildings">
                 <?php
                 foreach ($city->getBuildings() as $key => $building) {
@@ -156,7 +151,6 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
                         echo $building->getHTML();
                     }
                 }
-                echo get_submit_button('Save buildings');
                 ?>
             </form>
             <?php
@@ -170,13 +164,17 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
                     <input type="submit" name="previous" id="submit" class="button button-primary button-large" value="< Buildings">
                 </div>
                 <br/>
+                <?= get_submit_button('Save city') ?>
+                <br/>
                 <input type="hidden" name="save" value="city">
                 <?php
                 echo $city->getHTML();
-                echo get_submit_button('Save city');
                 ?>
             </form>
             <?php
+            break;
+        case 'done':
+            echo 'Finished parsing!';
             break;
     }
 }

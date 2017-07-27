@@ -96,7 +96,7 @@ class BuildingParser extends Parser
                         $cleanChildNode = $childNode->removeChild(0, $building->getType() == 'Merchant' ? 1 : 3);
                         $cleanChildNode = $cleanChildNode->removeChild($cleanChildNode->lastChild());
                         $cleanChildNode = $cleanChildNode->removeChild($cleanChildNode->lastChild());
-                        $building->addNPC(NPCParser::parseNPC($cleanChildNode), true);
+                        $building->addNPC(NPCParser::parseNPC($cleanChildNode));
                     }
                 }
                 break;
@@ -104,7 +104,7 @@ class BuildingParser extends Parser
                 $building->setTitle($node->childNodes(1)->childNodes(0)->text());
                 foreach ($node->childNodes(1)->childNodes() as $nodeChild) {
                     if ($nodeChild->tag == 'font') {
-                        $building->addNPC(NPCParser::parseNPC($nodeChild, 'guild_member'), true);
+                        $building->addNPC(NPCParser::parseNPC($nodeChild, 'guild_member'));
                     }
                 }
                 break;
@@ -112,7 +112,7 @@ class BuildingParser extends Parser
                 $building->setTitle($node->childNodes(1)->childNodes(0)->text());
                 foreach ($node->childNodes(1)->childNodes() as $nodeChild) {
                     if ($nodeChild->tag == 'font') {
-                        $building->addNPC(NPCParser::parseNPC($nodeChild, 'guard'), true);
+                        $building->addNPC(NPCParser::parseNPC($nodeChild, 'guard'));
                     }
                 }
                 break;
@@ -120,7 +120,7 @@ class BuildingParser extends Parser
                 $building->setTitle($node->childNodes(1)->childNodes(0)->text());
                 foreach ($node->childNodes(1)->childNodes() as $nodeChild) {
                     if ($nodeChild->tag == 'font' && $nodeChild->firstChild()->tag == 'b') {
-                        $building->addNPC(NPCParser::parseNPC($nodeChild, 'church_member'), true);
+                        $building->addNPC(NPCParser::parseNPC($nodeChild, 'church_member'));
                     } elseif ($nodeChild->tag == 'font' && $nodeChild->firstChild()->tag == 'i') {
                         preg_match_all('/<i>(.*?)<\/i> .*? (.*?)([cseg]p)/', $nodeChild->innertext(), $spellParts);
                         for ($i = 0; $i < count($spellParts[0]); ++$i) {

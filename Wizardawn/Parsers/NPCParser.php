@@ -17,7 +17,7 @@ class NPCParser extends Parser
 
     private static $typeMap
         = [
-            '-'   => 'main',
+            '-'   => 'owner',
             '--'  => 'spouse',
             '---' => 'child',
         ];

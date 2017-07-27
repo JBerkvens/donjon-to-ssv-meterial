@@ -166,6 +166,9 @@ class NPC extends JsonObject
         if ($foundNPC) {
             // The NPC has been found (not saving another instance but returning the found ID).
             Converter::updateID($this->id, $foundNPC->ID);
+            $savedBuildings = $_SESSION['saved_npcs'];
+            $savedBuildings[$foundNPC->ID] = $this;
+            $_SESSION['saved_npcs'] = $savedBuildings;
             return $foundNPC->ID;
         }
 
@@ -196,6 +199,9 @@ class NPC extends JsonObject
             update_post_meta($wp_id, $key, $value);
         }
         Converter::updateID($this->id, $wp_id);
+        $savedBuildings = $_SESSION['saved_npcs'];
+        $savedBuildings[$wp_id] = $this;
+        $_SESSION['saved_npcs'] = $savedBuildings;
         return $wp_id;
     }
 }

@@ -327,6 +327,9 @@ class Building extends JsonObject
             // The Building has been found (not saving another instance but returning the found ID).
             Converter::updateID($this->id, $foundBuilding->ID);
             Map::updateLabel($this->label, $foundBuilding->ID);
+            $savedBuildings = $_SESSION['saved_buildings'];
+            $savedBuildings[$foundBuilding->ID] = $this;
+            $_SESSION['saved_buildings'] = $savedBuildings;
             return $foundBuilding->ID;
         }
 
@@ -379,18 +382,31 @@ class Building extends JsonObject
         update_post_meta($wp_id, 'visible_objects', $this->npcs);
         Converter::updateID($this->id, $wp_id);
         Map::updateLabel($this->label, $wp_id);
+        $savedBuildings = $_SESSION['saved_buildings'];
+        $savedBuildings[$wp_id] = $this;
+        $_SESSION['saved_buildings'] = $savedBuildings;
         return $wp_id;
     }
 
     private function getWordPressContent(): string {
         ob_start();
-        /** @var string $npcID */
-        foreach ($this->npcs as $npcID) {
-            echo '[npc-' . $npcID . ']';
+        /** @var NPC[] $savedNPCs */
+        if (isset($_SESSION['saved_npcs'])) {
+            $savedNPCs = $_SESSION['saved_npcs'];
+        }
+        foreach ($savedNPCs as $npcID => $npc) {
+            if (in_array($npcID, $this->npcs)) {
+                if (!empty($npc->profession)) {
+                    echo '[object-'.$npcID.']';
+                } else {
+                    echo '[object-'.$npcID.'-tooltipped]';
+                }
+            }
         }
         if (!empty($this->products)) {
             echo '<h3>Products</h3>';
             echo '<table class="striped">';
+            echo '<tr><th>Product</th><th>Cost</th><th>In Stock</th></tr>';
             foreach ($this->products as $product) {
                 $productID = $product->toWordPress();
                 echo '[product-'.$productID.'-'.$product->cost.'-'.$product->inStock.']';
@@ -400,6 +416,7 @@ class Building extends JsonObject
         if (!empty($this->spells)) {
             echo '<h3>Spells</h3>';
             echo '<table class="striped">';
+            echo '<tr><th>Spell</th><th>Cost</th></tr>';
             foreach ($this->spells as $spell) {
                 $spellID = $spell->toWordPress();
                 echo '[spell-' . $spellID . '-' . $spell->cost . ']';

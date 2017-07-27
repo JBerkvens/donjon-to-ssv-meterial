@@ -2,6 +2,8 @@
 
 namespace Wizardawn\Models;
 
+use ssv_material_parser\Parser;
+
 class City extends JsonObject
 {
     protected $title = 'Test City';
@@ -148,10 +150,34 @@ class City extends JsonObject
 
     private function getWordPressContent()
     {
+        if (!isset($_SESSION['saved_buildings'])) {
+            return;
+        }
+        $savedBuildings = $_SESSION['saved_buildings'];
         $visibleBuildings = $this->getMap()->getVisibleBuildings();
+        $buildingsByType = [];
+        /** @var Building $building */
+        foreach ($savedBuildings as $buildingID => $building) {
+            if (in_array($buildingID, $visibleBuildings)) {
+                $buildingsByType[$building->getType()][] = $buildingID;
+            }
+        }
         ob_start();
-        foreach ($visibleBuildings as $building) {
-            echo '[area-'.$building.']';
+        if (!empty($visibleBuildings)) {
+            ?>
+            <h1>Buildings</h1>
+                <?php foreach ($buildingsByType as $buildingType => $buildingIDs): ?>
+                <?php if ($buildingType == 'House'): ?>
+                    <?php continue; ?>
+                <?php endif; ?>
+                <h2><?= $buildingType ?></h2>
+                <ul class="collection">
+                    <?php foreach ($buildingIDs as $buildingID): ?>
+                        <li class="collection-item">[object-<?= $buildingID ?>-link]</li>
+                    <?php endforeach; ?>
+                </ul>
+                <?php endforeach; ?>
+            <?php
         }
         return ob_get_clean();
     }
