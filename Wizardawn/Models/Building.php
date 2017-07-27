@@ -396,7 +396,7 @@ class Building extends JsonObject
         }
         foreach ($savedNPCs as $npcID => $npc) {
             if (in_array($npcID, $this->npcs)) {
-                if (!empty($npc->profession)) {
+                if (!empty($npc->profession) || $this->type == 'House') {
                     echo '[object-'.$npcID.']';
                 } else {
                     echo '[object-'.$npcID.'-tooltipped]';
