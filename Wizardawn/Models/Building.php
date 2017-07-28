@@ -394,14 +394,25 @@ class Building extends JsonObject
         if (isset($_SESSION['saved_npcs'])) {
             $savedNPCs = $_SESSION['saved_npcs'];
         }
+        $alwaysShowNPCs = [];
         foreach ($savedNPCs as $npcID => $npc) {
             if (in_array($npcID, $this->npcs)) {
                 if (!empty($npc->profession) || $this->type == 'House') {
-                    echo '[object-'.$npcID.']';
+                    $alwaysShowNPCs[] = $npcID;
                 } else {
-                    echo '[object-'.$npcID.'-tooltipped]';
+                    $collapsableNPCs[] = $npcID;
                 }
             }
+        }
+        if (!empty($collapsableNPCs)) {
+            echo '<ul class="collection">';
+            foreach ($collapsableNPCs as $npcID) {
+                echo '<li class="collection-item">[object-'.$npcID.'-link]</li>';
+            }
+            echo '</ul>';
+        }
+        foreach ($alwaysShowNPCs as $npcID) {
+            echo '[object-'.$npcID.']';
         }
         if (!empty($this->products)) {
             echo '<h3>Products</h3>';
