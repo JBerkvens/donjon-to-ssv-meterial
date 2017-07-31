@@ -406,7 +406,7 @@ class Building extends JsonObject
         }
         if (!empty($collapsableNPCs)) {
             echo '<h2>Occupants</h2>';
-            echo '<ul class="collapsible">';
+            echo '<ul class="collapsible" data-collapsible="expandable">';
             foreach ($collapsableNPCs as $npcID) {
                 echo '<li class="collection-item">[object-'.$npcID.'-li]</li>';
             }
