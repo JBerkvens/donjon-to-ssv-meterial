@@ -405,9 +405,10 @@ class Building extends JsonObject
             }
         }
         if (!empty($collapsableNPCs)) {
-            echo '<ul class="collection">';
+            echo '<h2>Occupants</h2>';
+            echo '<ul class="collapsible">';
             foreach ($collapsableNPCs as $npcID) {
-                echo '<li class="collection-item">[object-'.$npcID.'-link]</li>';
+                echo '<li class="collection-item">[object-'.$npcID.'-li]</li>';
             }
             echo '</ul>';
         }
@@ -415,7 +416,7 @@ class Building extends JsonObject
             echo '[object-'.$npcID.']';
         }
         if (!empty($this->products)) {
-            echo '<h3>Products</h3>';
+            echo '<h2>Products</h2>';
             echo '<table class="striped">';
             echo '<tr><th>Product</th><th>Cost</th><th>In Stock</th></tr>';
             foreach ($this->products as $product) {
@@ -425,7 +426,7 @@ class Building extends JsonObject
             echo '</table>';
         }
         if (!empty($this->spells)) {
-            echo '<h3>Spells</h3>';
+            echo '<h2>Spells</h2>';
             echo '<table class="striped">';
             echo '<tr><th>Spell</th><th>Cost</th></tr>';
             foreach ($this->spells as $spell) {
