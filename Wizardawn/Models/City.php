@@ -27,6 +27,11 @@ class City extends JsonObject
         $this->map = $map;
     }
 
+    public function hasMap()
+    {
+        return $this->map !== null;
+    }
+
     public function getMap(): Map
     {
         return $this->map;
@@ -61,8 +66,11 @@ class City extends JsonObject
         return null;
     }
 
-    public function getHTML()
+    public function getHTML(): string
     {
+        if ($this->map === null) {
+            return '';
+        }
         ob_start();
         ?>
         <table style="position: relative; display: inline-block; border: 1px solid black; margin-right: 4px;">
@@ -141,10 +149,15 @@ class City extends JsonObject
                 'tax_input'    => $custom_tax,
             ]
         );
-        update_post_meta($wp_id, 'visible_objects', $this->getMap()->getVisibleBuildings());
-        update_post_meta($wp_id, 'label_translations', $this->getMap()->getLabelTranslations());
-        $mapImageID = media_sideload_image($this->getMap()->getImage(), $wp_id, 'The map of ' . $this->title, 'id');
-        update_post_meta($wp_id, 'map_image_id', $mapImageID);
+        if ($this->map !== null) {
+            update_post_meta($wp_id, 'visible_objects', $this->getMap()->getVisibleBuildings());
+            update_post_meta($wp_id, 'label_translations', $this->getMap()->getLabelTranslations());
+            $mapImageID = media_sideload_image($this->getMap()->getImage(), $wp_id, 'The map of '.$this->title, 'id');
+            update_post_meta($wp_id, 'map_image_id', $mapImageID);
+        } else {
+            $savedBuildings = $_SESSION['saved_buildings'];
+            update_post_meta($wp_id, 'visible_objects', array_keys($savedBuildings));
+        }
         return $wp_id;
     }
 
@@ -154,7 +167,7 @@ class City extends JsonObject
             return;
         }
         $savedBuildings = $_SESSION['saved_buildings'];
-        $visibleBuildings = $this->getMap()->getVisibleBuildings();
+        $visibleBuildings = $this->map !== null ? $this->getMap()->getVisibleBuildings() : array_keys($savedBuildings);
         $buildingsByType = [];
         /** @var Building $building */
         foreach ($savedBuildings as $buildingID => $building) {

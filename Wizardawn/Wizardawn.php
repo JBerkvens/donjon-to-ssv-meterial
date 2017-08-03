@@ -95,10 +95,10 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
             $nextPage = 'done';
             /** @var City $city */
             $city = $_SESSION['city'];
-            if ($_POST['saveCity'] == 'false') {
+            if (isset($_POST['saveCity']) && $_POST['saveCity'] == 'false') {
                 break;
             }
-            if ($_POST['saveMap'] == 'true') {
+            if (isset($_POST['saveMap']) && $_POST['saveMap'] == 'true') {
                 $city->getMap()->updateFromPOST();
             }
             $city->toWordPress();

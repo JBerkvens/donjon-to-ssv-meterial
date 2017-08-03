@@ -7,6 +7,7 @@ use Exception;
 use Wizardawn\Models\City;
 use Wizardawn\Parser\BuildingParser;
 use Wizardawn\Parser\MapParser;
+use Wizardawn\Parser\NPCParser;
 
 require_once "Parsers/MapParser.php";
 require_once "Parsers/NPCParser.php";
@@ -36,7 +37,8 @@ abstract class Converter extends Parser
 
         $city = new City();
         $city->setTitle($html->getElementByTagName('font')->text());
-        $city->setMap(MapParser::parseMap($html));
+        MapParser::parseMap($city, $html);
+        NPCParser::parseRoyalty($city, $html);
         BuildingParser::parseBuildings($city, $html);
         return $city;
     }

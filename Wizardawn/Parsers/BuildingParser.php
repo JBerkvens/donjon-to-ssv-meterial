@@ -19,8 +19,9 @@ use Wizardawn\Models\Spell;
 
 class BuildingParser extends Parser
 {
+
     /**
-     * This function parses the Map and adds links to the modals.
+     * This function parses the Building with the NPC's, Products and Spells.
      *
      * @param City            $city
      * @param simple_html_dom $html
@@ -31,7 +32,7 @@ class BuildingParser extends Parser
     {
         $children     = $html->childNodes();
         $building     = new simple_html_dom_node($html);
-        $buildingType = 'test';
+        $buildingType = 'House';
         foreach ($children as $child) {
             if (self::isBuildingID($child) || $child->tag == 'br') {
                 if (self::isBuildingID($building->firstChild())) {
@@ -72,8 +73,6 @@ class BuildingParser extends Parser
 
     private static function parseBuilding(simple_html_dom_node $node, $buildingType = 'House'): Building
     {
-//        if (strpos($node->innertext(), '5sp per night') !== false) {
-//        }
         $building = new Building(intval($node->firstChild()->firstChild()->firstChild()->innertext()), $buildingType);
         switch ($building->getType()) {
             case 'House':

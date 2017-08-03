@@ -8,9 +8,14 @@
 
 namespace Wizardawn\Parser;
 
+use simple_html_dom;
 use simple_html_dom_node;
 use ssv_material_parser\Parser;
+use Wizardawn\Models\Building;
+use Wizardawn\Models\City;
+use Wizardawn\Models\MapLabel;
 use Wizardawn\Models\NPC;
+use Wizardawn\Models\Product;
 
 class NPCParser extends Parser
 {
@@ -21,6 +26,48 @@ class NPCParser extends Parser
             '--'  => 'spouse',
             '---' => 'child',
         ];
+
+    /**
+     * This function parses the Royalty.
+     *
+     * @param City            $city
+     * @param simple_html_dom $html
+     *
+     * @return City
+     */
+    public static function parseRoyalty(City &$city, simple_html_dom $html): City
+    {
+        $children     = $html->childNodes();
+        $building = new Building(-1, 'Royal');
+        foreach ($children as $child) {
+            if (self::isRoyalty($child)) {
+                $building->addNPC(self::parseNPC($child, 'Royalty'));
+            } elseif (self::isRoyalVault($child)) {
+                $building->setVaultItems(explode('---', str_replace('ROYAL VAULT:', '', $child->text())));
+            }
+        }
+        $building->setTitle($city->getTitle() . ' Royal Building');
+        $city->addBuilding($building);
+        return $city;
+    }
+
+    private static function isRoyalty(simple_html_dom_node $node)
+    {
+        return $node->tag == 'font'
+               && $node->hasChildNodes()
+               && $node->childNodes(0)->tag == 'b'
+               && $node->text()[0] !== '-'
+               && $node->childNodes(1)->tag == 'i'
+               && $node->childNodes(2)->tag == 'b';
+    }
+
+    private static function isRoyalVault(simple_html_dom_node $node)
+    {
+        return $node->tag == 'font'
+               && $node->hasChildNodes()
+               && $node->childNodes(1)->tag == 'b'
+               && $node->childNodes(1)->text() == 'ROYAL VAULT:';
+    }
 
     public static function parseNPC(simple_html_dom_node $node, $type = null): NPC
     {

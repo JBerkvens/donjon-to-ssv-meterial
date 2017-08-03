@@ -17,6 +17,8 @@ class Building extends JsonObject
     protected $products = [];
     /** @var Spell[] */
     protected $spells = [];
+    /** @var array */
+    protected $vaultItems = [];
 
     public function __construct(int $buildingID, string $type)
     {
@@ -85,6 +87,11 @@ class Building extends JsonObject
         return $this->spells;
     }
 
+    public function setVaultItems($vaultItems)
+    {
+        $this->vaultItems = $vaultItems;
+    }
+
     public function updateWith(Building $building)
     {
         if ($this->label != $building->label) {
@@ -125,15 +132,16 @@ class Building extends JsonObject
                 </td>
             </tr>
             <tr>
-                <td><label>Title</label></td>
+                <td><label>ID</label></td>
                 <td>
-                    <input name="building___title[<?= $this->id ?>]" value="<?= $this->title ?>" title="Title" style="width: 100%;">
+                    <?= $this->label ?>
+                    <input type="hidden" name="building___label[<?= $this->id ?>]" value="<?= $this->label ?>" title="Label" style="width: 100%;">
                 </td>
             </tr>
             <tr>
-                <td><label>Label</label></td>
+                <td><label>Title</label></td>
                 <td>
-                    <input name="building___label[<?= $this->id ?>]" value="<?= $this->label ?>" title="Label" style="width: 100%;">
+                    <input name="building___title[<?= $this->id ?>]" value="<?= $this->title ?>" title="Title" style="width: 100%;">
                 </td>
             </tr>
             <tr>
@@ -189,6 +197,12 @@ class Building extends JsonObject
                         </tbody>
                     </table>
                     <button type="button" onclick="addSpell('<?= $this->id ?>', this)" data-rows="<?= $spellID ?>">Add</button>
+                </td>
+            </tr>
+            <tr>
+                <td><label>Vault</label></td>
+                <td>
+                    <textarea name="building___vault[<?= $this->id ?>]"><?= implode(' --- ', $this->vaultItems) ?></textarea>
                 </td>
             </tr>
             <tr>
@@ -281,7 +295,8 @@ class Building extends JsonObject
 
     public static function getFromPOST($id, $unset = false)
     {
-        $building = new self($_POST['building___label'][$id], $_POST['building___type'][$id]);
+        $buildingID = $_POST['building___label'][$id];
+        $building = new self($buildingID, $_POST['building___type'][$id]);
         $building->setID($id);
         $fields   = [
             'title',
@@ -299,6 +314,8 @@ class Building extends JsonObject
                     $building->$field = Product::getFromArray($value);
                 } elseif ($field == 'spells') {
                     $building->$field = Spell::getFromArray($value);
+                } elseif ($field == 'vault') {
+                    $building->$field = explode(' --- ', $value);
                 } else {
                     $building->$field = $value;
                 }
@@ -434,6 +451,14 @@ class Building extends JsonObject
                 echo '[spell-' . $spellID . '-' . $spell->cost . ']';
             }
             echo '</table>';
+        }
+        if (!empty($this->vaultItems)) {
+            echo '<ul class="collection with-header">';
+            echo '<li class="collection-header"><h3>Royal Vault</h3></li>';
+            foreach ($this->vaultItems as $item) {
+                echo '<li class="collection-item">'.$item.'</li>';
+            }
+            echo '</ul>';
         }
         return ob_get_clean();
     }

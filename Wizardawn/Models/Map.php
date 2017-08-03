@@ -20,6 +20,9 @@ class Map extends JsonObject
     {
         /** @var City $city */
         $city = $_SESSION['city'];
+        if (!$city->hasMap()) {
+            return;
+        }
         $map = $city->getMap();
         foreach ($map->labels as &$mapLabel) {
             if ($mapLabel->buildingID == $label) {

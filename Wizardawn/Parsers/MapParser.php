@@ -12,6 +12,7 @@ use ImageCombiner;
 use simple_html_dom;
 use simple_html_dom_node;
 use ssv_material_parser\Parser;
+use Wizardawn\Models\City;
 use Wizardawn\Models\Map;
 use Wizardawn\Models\MapLabel;
 
@@ -24,15 +25,14 @@ class MapParser extends Parser
     /**
      * This function parses the Map and adds links to the modals.
      *
+     * @param City $city
      * @param simple_html_dom $body
-     *
-     * @return Map
      */
-    public static function parseMap(simple_html_dom $body): Map
+    public static function parseMap(City &$city, simple_html_dom $body)
     {
         $html = $body->getElementById('myMap');
         if ($html === null) {
-            return null;
+            return;
         }
         $map   = new Map();
         $width = $html->getAttribute("style");
@@ -41,17 +41,18 @@ class MapParser extends Parser
         $map->setWidth($mapWidth);
         $srcImagePaths = [];
         foreach ($html->children() as $panelElement) {
-            self::parsePanel($map, $panelElement);
             $image    = $panelElement->getElementByTagName('img');
             preg_match('/\/[\s\S]+?\/([\s\S]+?)"/', (string)$image, $image);
-            $srcImagePaths[] = 'http://wizardawn.and-mag.com/maps/'.$image[1];
+            $image = $image[1];
+            $isKeep = mp_ends_with($image, '.jpg');
+            self::parsePanel($map, $panelElement, $isKeep);
+            $srcImagePaths[] = 'http://wizardawn.and-mag.com/maps/'.$image;
         }
         $map->setImage(ImageCombiner::convertToSingle($srcImagePaths, $mapWidth - 100));
-
-        return $map;
+        $city->setMap($map);
     }
 
-    private static function parsePanel(Map &$map, simple_html_dom_node $panelElement)
+    private static function parsePanel(Map &$map, simple_html_dom_node $panelElement, $isKeep)
     {
         $style = $panelElement->getAttribute("style");
         preg_match("/top:([0-9]+)px/", $style, $topTranslation);
@@ -69,8 +70,11 @@ class MapParser extends Parser
                 $style = $panelBuilding->getAttribute("style");
                 preg_match("/top:([0-9]+)px/", $style, $top);
                 preg_match("/left:([0-9]+)px/", $style, $left);
-                $map->addLabel(new MapLabel((string)$panelBuildingNumber, $left[1] + $leftTranslation, $top[1] + $topTranslation));
+                $map->addLabel(new MapLabel((int)$panelBuildingNumber, $left[1] + $leftTranslation, $top[1] + $topTranslation));
             }
+        }
+        if ($isKeep) {
+            $map->addLabel(new MapLabel(-1, $leftTranslation + 150, $topTranslation + 150));
         }
     }
 }
