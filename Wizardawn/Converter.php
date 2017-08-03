@@ -38,7 +38,7 @@ abstract class Converter extends Parser
         $city = new City();
         $city->setTitle($html->getElementByTagName('font')->text());
         MapParser::parseMap($city, $html);
-        NPCParser::parseRoyalty($city, $html);
+        BuildingParser::parseRoyalty($city, $html);
         BuildingParser::parseBuildings($city, $html);
         return $city;
     }

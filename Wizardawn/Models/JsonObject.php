@@ -73,7 +73,7 @@ class JsonObject
         } else {
             $vars = get_object_vars($this);
             foreach ($vars as $varKey => $var) {
-                if (is_array($var)) {
+                if (is_array($var) && $varKey !== 'vaultItems') {
                     foreach ($var as $key => &$item) {
                         if ($key == $id) {
                             $item = $wp_id;

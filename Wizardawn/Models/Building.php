@@ -92,6 +92,11 @@ class Building extends JsonObject
         $this->vaultItems = $vaultItems;
     }
 
+    public function getVaultItems(): array
+    {
+        return $this->vaultItems;
+    }
+
     public function updateWith(Building $building)
     {
         if ($this->label != $building->label) {
@@ -112,6 +117,11 @@ class Building extends JsonObject
         foreach ($building->spells as $spells) {
             if (!in_array($spells, $this->spells)) {
                 $this->spells[$spells->id] = $spells;
+            }
+        }
+        foreach ($building->vaultItems as $item) {
+            if (!in_array($item, $this->vaultItems)) {
+                $this->vaultItems[] = $item;
             }
         }
 
@@ -303,6 +313,7 @@ class Building extends JsonObject
             'npcs',
             'products',
             'spells',
+            'vault',
         ];
         foreach ($fields as $field) {
             if (!isset($_POST['building___' . $field]) || !isset($_POST['building___' . $field][$id])) {
@@ -311,11 +322,11 @@ class Building extends JsonObject
             $value = $_POST['building___' . $field][$id];
             if (!empty($value)) {
                 if ($field == 'products') {
-                    $building->$field = Product::getFromArray($value);
+                    $building->products = Product::getFromArray($value);
                 } elseif ($field == 'spells') {
-                    $building->$field = Spell::getFromArray($value);
+                    $building->spells = Spell::getFromArray($value);
                 } elseif ($field == 'vault') {
-                    $building->$field = explode(' --- ', $value);
+                    $building->vaultItems = explode(' --- ', $value);
                 } else {
                     $building->$field = $value;
                 }
@@ -452,6 +463,7 @@ class Building extends JsonObject
             }
             echo '</table>';
         }
+
         if (!empty($this->vaultItems)) {
             echo '<ul class="collection with-header">';
             echo '<li class="collection-header"><h3>Royal Vault</h3></li>';
