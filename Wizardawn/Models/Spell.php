@@ -34,7 +34,7 @@ class Spell extends JsonObject
         /** @var \WP_Post $foundNPC */
         $foundSpell = $wpdb->get_row($sql);
         if ($foundSpell) {
-            // The NPC has been found (not saving another instance but returning the found ID).
+            // The Spell has been found (not saving another instance but returning the found ID).
             return $foundSpell->ID;
         }
 

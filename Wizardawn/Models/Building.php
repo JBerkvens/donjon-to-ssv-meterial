@@ -345,6 +345,7 @@ class Building extends JsonObject
     {
         $title   = $this->title;
         $content = $this->getWordPressContent();
+        $content = empty($content) ? 'This building is empty.' : $content;
 
         /** @var \wpdb $wpdb */
         global $wpdb;
@@ -381,6 +382,9 @@ class Building extends JsonObject
                     $color = '#00c853';
                     break;
                 case 'Inn':
+                    $color = '#eeff41';
+                    break;
+                case 'Royal':
                     $color = '#eeff41';
                     break;
                 case 'House':
