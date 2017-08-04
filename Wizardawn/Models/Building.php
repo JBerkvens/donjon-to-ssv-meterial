@@ -376,7 +376,7 @@ class Building extends JsonObject
                     $color = '#00b0ff';
                     break;
                 case 'Church':
-                    $color = '#d50000';
+                    $color = '#ff6d00';
                     break;
                 case 'Guild':
                     $color = '#00c853';
@@ -385,7 +385,7 @@ class Building extends JsonObject
                     $color = '#eeff41';
                     break;
                 case 'Royal':
-                    $color = '#eeff41';
+                    $color = '#d50000';
                     break;
                 case 'House':
                 default:
