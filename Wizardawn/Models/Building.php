@@ -10,6 +10,15 @@ class Building extends JsonObject
 {
     public $label;
     protected $type;
+    private $typePluralMap = [
+        'Merchant'   => 'Merchants',
+        'Guardhouse' => 'Guardhouses',
+        'Church'     => 'Churches',
+        'Guild'      => 'Guilds',
+        'Inn'        => 'Inns',
+        'Royal'      => 'Royal Buildigns',
+        'House'      => 'Houses',
+    ];
     protected $title = null;
     /** @var NPC[] */
     protected $npcs = [];
@@ -366,7 +375,7 @@ class Building extends JsonObject
         if (!$buildingTerm) {
             $buildingTerm = wp_insert_term('Building', 'area_type', ['parent' => 0]);
         }
-        $thisTypeTerm = term_exists(ucfirst($this->type), 'area_type', $buildingTerm['term_taxonomy_id']);
+        $thisTypeTerm = term_exists(ucfirst($this->typePluralMap[$this->type]), 'area_type', $buildingTerm['term_taxonomy_id']);
         if (!$thisTypeTerm) {
             switch ($this->type) {
                 case 'Merchant':
@@ -392,7 +401,7 @@ class Building extends JsonObject
                     $color = '#a0a0a0';
                     break;
             }
-            $thisTypeTerm = wp_insert_term(ucfirst($this->type), 'area_type', ['description' => $color, 'parent' => $buildingTerm['term_taxonomy_id']]);
+            $thisTypeTerm = wp_insert_term(ucfirst($this->typePluralMap[$this->type]), 'area_type', ['description' => $color, 'parent' => $buildingTerm['term_taxonomy_id']]);
         }
 
         $custom_tax = [
