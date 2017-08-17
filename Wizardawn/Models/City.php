@@ -178,18 +178,13 @@ class City extends JsonObject
         ob_start();
         if (!empty($visibleBuildings)) {
             ?>
-            <h1>Buildings</h1>
-                <?php foreach ($buildingsByType as $buildingType => $buildingIDs): ?>
-                <?php if ($buildingType == 'House'): ?>
-                    <?php continue; ?>
-                <?php endif; ?>
-                <h2><?= $buildingType ?></h2>
-                <ul class="collection">
-                    <?php foreach ($buildingIDs as $buildingID): ?>
-                        <li class="collection-item">[object-<?= $buildingID ?>-link]</li>
-                    <?php endforeach; ?>
-                </ul>
-                <?php endforeach; ?>
+            <?php foreach ($buildingsByType as $buildingType => $buildingIDs): ?>
+            <?php if ($buildingType == 'House'): ?>
+                <?php continue; ?>
+            <?php endif; ?>
+            <h2><?= $buildingType ?></h2>
+            [visible-objects-collection-area_type-<?=strtolower($buildingType)?>]
+            <?php endforeach; ?>
             <?php
         }
         return ob_get_clean();
