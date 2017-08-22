@@ -28,7 +28,9 @@ define('SSV_MATERIAL_PARSER_URL', plugins_url() . '/ssv-material-parser/');
 #region Require Once
 require_once 'functions.php';
 require_once 'admin-page.php';
-require_once 'include/simple_html_dom.php';
+if (!class_exists('simple_html_dom_node')) {
+    require_once 'include/simple_html_dom.php';
+}
 require_once 'ImageCombiner.php';
 #endregion
 
