@@ -287,7 +287,7 @@ class BuildingParser extends Parser
                 <tbody>
                 <?php foreach ($building['products'] as $product): ?>
                     <tr>
-                        <td><?= $product['item'] ?></td>
+                        <td><?= $product['Item'] ?></td>
                         <td><?= $product['cost'] ?></td>
                         <td><?= $product['stock'] ?></td>
                     </tr>
