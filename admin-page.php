@@ -4,16 +4,13 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-#region Menu Items
 function ssv_material_parser_add_menu()
 {
     add_submenu_page('mp_dd_settings', 'Parser', 'Parser', 'publish_posts', 'ssv_material_parser_material_parser', 'ssv_material_parser_settings_page');
 }
 
 add_action('admin_menu', 'ssv_material_parser_add_menu', 9);
-#endregion
 
-#region Page Content
 function ssv_material_parser_settings_page()
 {
     $active_tab = "wizardawn";
@@ -40,4 +37,3 @@ function ssv_material_parser_settings_page()
     </div>
     <?php
 }
-#endregion

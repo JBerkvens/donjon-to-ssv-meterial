@@ -54,7 +54,6 @@ if (!function_exists('mp_edit_form_after_title')) {
     add_action('edit_form_after_title', 'mp_edit_form_after_title');
 }
 
-#region Functions that should be in PHP
 if (!function_exists('mp_var_export')) {
     /**
      * This function is for development purposes only and lets the developer print a variable in the PHP formatting to inspect what the variable is set to.

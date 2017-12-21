@@ -25,20 +25,16 @@ error_reporting(E_ALL);
 define('SSV_MATERIAL_PARSER_PATH', plugin_dir_path(__FILE__));
 define('SSV_MATERIAL_PARSER_URL', plugins_url() . '/ssv-material-parser/');
 
-#region Require Once
 require_once 'functions.php';
 require_once 'admin-page.php';
 if (!class_exists('simple_html_dom_node')) {
     require_once 'include/simple_html_dom.php';
 }
 require_once 'ImageCombiner.php';
-#endregion
 
-#region SSV_Users class
 class Parser
 {
-    #region Constants
-    const PATH = SSV_MATERIAL_PARSER_PATH;
+        const PATH = SSV_MATERIAL_PARSER_PATH;
     const URL = SSV_MATERIAL_PARSER_URL;
 
     const REMOVE_HTML
@@ -54,8 +50,7 @@ class Parser
             '&nbsp;',
             '&#13;',
         );
-    #endregion
-
+    
     /**
      * This function converts to a UTF-8 string, removes all redundant spaces, tabs, etc. and returns all usable code after the closing head tag.
      *
@@ -99,4 +94,3 @@ class Parser
         return self::cleanCode($part);
     }
 }
-#endregion
