@@ -6,7 +6,7 @@
  * Time: 15:24
  */
 
-namespace Wizardawn\Models;
+namespace dd_parser\Wizardawn\Models;
 
 use ReflectionClass;
 

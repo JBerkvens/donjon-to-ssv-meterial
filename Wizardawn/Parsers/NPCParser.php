@@ -6,14 +6,15 @@
  * Time: 20:58
  */
 
-namespace Wizardawn\Parser;
+namespace dd_parser\Wizardawn\Parser;
 
+use mp_general\base\BaseFunctions;
 use simple_html_dom;
 use simple_html_dom_node;
-use ssv_material_parser\Parser;
-use Wizardawn\Models\Building;
-use Wizardawn\Models\City;
-use Wizardawn\Models\NPC;
+use dd_parser\Parser;
+use dd_parser\Wizardawn\Models\Building;
+use dd_parser\Wizardawn\Models\City;
+use dd_parser\Wizardawn\Models\NPC;
 
 class NPCParser extends Parser
 {
@@ -38,10 +39,14 @@ class NPCParser extends Parser
         } else {
             $type = explode('<b>', $node->innertext())[0];
             $npc->type = self::$typeMap[$type];
+            if ($npc->type === 'owner') {
+                $npc->profession = 'Store Owner';
+            }
         }
         $npc->name = str_replace(':', '', $node->firstChild()->text());
         list($npc->height, $npc->weight) = self::parsePhysique($node);
         $npc->description = self::parseDescription($node);
+        $npc->race        = self::parseRaceFromDescription($npc->description);
         $npc->clothing    = self::parseClothing($node);
         $npc->possessions = self::parsePossessions($node);
         $npc->arms_armor  = self::parseArmsAndArmor($node);
@@ -96,5 +101,14 @@ class NPCParser extends Parser
             return trim(explode($node->childNodes(5)->outertext(), $node->innertext())[1]);
         }
         return '';
+    }
+
+    private static function parseRaceFromDescription(string $description): string
+    {
+        if (BaseFunctions::startsWith($description, 'He')) {
+            return explode(' ', substr($description, strpos($description, 'male') + 5))[0];
+        } else {
+            return explode(' ', substr($description, strpos($description, 'female') + 7))[0];
+        }
     }
 }

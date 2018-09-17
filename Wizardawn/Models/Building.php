@@ -1,10 +1,10 @@
 <?php
 
-namespace Wizardawn\Models;
+namespace dd_parser\Wizardawn\Models;
 
 use Exception;
 use mp_dd\MP_DD;
-use ssv_material_parser\Converter;
+use dd_parser\Converter;
 
 class Building extends JsonObject
 {
@@ -62,7 +62,10 @@ class Building extends JsonObject
         }
     }
 
-    public function getNPCs()
+    /**
+     * @return NPC[]
+     */
+    public function getNPCs(): array
     {
         return $this->npcs;
     }

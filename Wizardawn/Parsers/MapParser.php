@@ -6,15 +6,15 @@
  * Time: 20:58
  */
 
-namespace Wizardawn\Parser;
+namespace dd_parser\Wizardawn\Parser;
 
 use ImageCombiner;
 use simple_html_dom;
 use simple_html_dom_node;
-use ssv_material_parser\Parser;
-use Wizardawn\Models\City;
-use Wizardawn\Models\Map;
-use Wizardawn\Models\MapLabel;
+use dd_parser\Parser;
+use dd_parser\Wizardawn\Models\City;
+use dd_parser\Wizardawn\Models\Map;
+use dd_parser\Wizardawn\Models\MapLabel;
 
 class MapParser extends Parser
 {
@@ -44,7 +44,7 @@ class MapParser extends Parser
             $image    = $panelElement->getElementByTagName('img');
             preg_match('/\/[\s\S]+?\/([\s\S]+?)"/', (string)$image, $image);
             $image = $image[1];
-            $isKeep = mp_ends_with($image, '.jpg');
+            $isKeep = BaseFunctions::endsWith($image, '.jpg');
             self::parsePanel($map, $panelElement, $isKeep);
             $srcImagePaths[] = 'http://wizardawn.and-mag.com/maps/'.$image;
         }

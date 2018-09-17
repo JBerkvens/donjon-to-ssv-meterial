@@ -1,8 +1,8 @@
 <?php
 /**
- * Plugin Name: SSV Material Parser
- * Plugin URI: http://moridrin.com/ssv-material-parser
- * Description: With this plugin you can parse generated HTML (from Wizardawn or from Donjon) to the SSV-Material theme.
+ * Plugin Name: D&D Parser
+ * Plugin URI: http://moridrin.com/dd-parser
+ * Description: With this plugin you can parse generated HTML (from Wizardawn or from Donjon) to Areas and NPCs (mp-dd plugin).
  * Version: 1.0.0
  * Author: Jeroen Berkvens
  * Author URI: http://nl.linkedin.com/in/jberkvens/
@@ -10,7 +10,7 @@
  * License URI: http://www.wtfpl.net/txt/copying/
  */
 
-namespace ssv_material_parser;
+namespace dd_parser;
 
 use DOMDocument;
 
@@ -22,20 +22,21 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-define('SSV_MATERIAL_PARSER_PATH', plugin_dir_path(__FILE__));
-define('SSV_MATERIAL_PARSER_URL', plugins_url() . '/ssv-material-parser/');
+define('DD_PARSER_PATH', plugin_dir_path(__FILE__));
+define('DD_PARSER_URL', plugins_url() . '/ssv-material-parser/');
 
 require_once 'functions.php';
-require_once 'admin-page.php';
+require_once 'Options.php';
 if (!class_exists('simple_html_dom_node')) {
     require_once 'include/simple_html_dom.php';
 }
 require_once 'ImageCombiner.php';
+require_once 'general/general.php';
 
 class Parser
 {
-        const PATH = SSV_MATERIAL_PARSER_PATH;
-    const URL = SSV_MATERIAL_PARSER_URL;
+    const PATH = DD_PARSER_PATH;
+    const URL = DD_PARSER_URL;
 
     const REMOVE_HTML
         = array(

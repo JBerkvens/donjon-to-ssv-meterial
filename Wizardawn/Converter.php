@@ -1,13 +1,14 @@
 <?php
 
-namespace ssv_material_parser;
+namespace dd_parser;
 
 use DOMDocument;
 use Exception;
-use Wizardawn\Models\City;
-use Wizardawn\Parser\BuildingParser;
-use Wizardawn\Parser\MapParser;
-use Wizardawn\Parser\NPCParser;
+use mp_general\base\BaseFunctions;
+use dd_parser\Wizardawn\Models\City;
+use dd_parser\Wizardawn\Parser\BuildingParser;
+use dd_parser\Wizardawn\Parser\MapParser;
+use dd_parser\Wizardawn\Parser\NPCParser;
 
 require_once "Parsers/MapParser.php";
 require_once "Parsers/NPCParser.php";
@@ -37,7 +38,7 @@ abstract class Converter extends Parser
 
         $city = new City();
         $city->setTitle($html->getElementByTagName('font')->text());
-        MapParser::parseMap($city, $html);
+//        MapParser::parseMap($city, $html);
         BuildingParser::parseRoyalty($city, $html);
         BuildingParser::parseBuildings($city, $html);
         return $city;

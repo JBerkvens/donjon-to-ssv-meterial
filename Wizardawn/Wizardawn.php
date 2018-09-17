@@ -1,25 +1,25 @@
 <?php
 
-namespace ssv_material_parser;
+namespace dd_parser;
 
 use Exception;
-use Wizardawn\Models\Building;
-use Wizardawn\Models\City;
-use Wizardawn\Models\Map;
-use Wizardawn\Models\NPC;
+use dd_parser\Wizardawn\Models\Building;
+use dd_parser\Wizardawn\Models\City;
+use dd_parser\Wizardawn\Models\Map;
+use dd_parser\Wizardawn\Models\NPC;
 
 require_once 'Converter.php';
 
 ini_set('max_input_vars', '100000');
 
-?>
-    <h1>Convert Wizardawn Files to the SSV Material theme</h1>
-<?php
-if ($_SERVER['REQUEST_METHOD'] != 'POST') {
+const DEVELOP = true;
+
+?><h1>Convert Wizardawn Files to the SSV Material theme</h1><?php
+if (!DEVELOP && $_SERVER['REQUEST_METHOD'] != 'POST') {
     ?>
     <form action="#" method="post" enctype="multipart/form-data">
         <input type="hidden" name="save" value="upload">
-        <input type="file" name="html_file" required><br/>
+        <input type="file" name="html_file"><br/>
         <select name="parse_output">
             <option value="mp_dd">D&D Objects</option>
             <option value="html">HTML</option>
@@ -29,25 +29,30 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
     <?php
 } else {
     $nextPage = '';
-    switch ($_POST['save']) {
+    switch ($_POST['save'] ?? 'upload') {
         case 'upload':
             $nextPage = 'npcs';
-            if (!function_exists('wp_handle_upload')) {
-                require_once(ABSPATH . 'wp-admin/includes/file.php');
+            if (DEVELOP) {
+                $movedFile = [
+                    'file' => Parser::PATH . 'test/Eversprings.html',
+                ];
+            } else {
+                if (!function_exists('wp_handle_upload')) {
+                    require_once(ABSPATH . 'wp-admin/includes/file.php');
+                }
+                $uploadedFile = $_FILES['html_file'];
+                $uploadOverrides = array('test_form' => false);
+                $movedFile = wp_handle_upload($uploadedFile, $uploadOverrides);
+                if (!$movedFile || isset($movedFile['error']) || $movedFile['type'] != 'text/html') {
+                    echo $movedFile['error'];
+                    return;
+                }
             }
-            $uploadedFile    = $_FILES['html_file'];
-            $uploadOverrides = array('test_form' => false);
-            $movedFile       = wp_handle_upload($uploadedFile, $uploadOverrides);
-            if (!$movedFile || isset($movedFile['error']) || $movedFile['type'] != 'text/html') {
-                echo $movedFile['error'];
-                return;
-            }
-            $fileContent = file_get_html($movedFile['file']);
-            $city             = Converter::Convert($fileContent);
+            $city = Converter::Convert(file_get_contents($movedFile['file']));
             $_SESSION['city'] = $city;
             $_SESSION['saved_npcs'] = [];
             $_SESSION['saved_buildings'] = [];
-            if ($_POST['parse_output'] == 'html') {
+            if (isset($_POST['parse_output']) && $_POST['parse_output'] === 'html') {
                 ?><textarea><?= $city->getHTML() ?></textarea><?php
             }
             break;
@@ -61,10 +66,14 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
                 $id = $_POST['save_single'];
                 NPC::getFromPOST($id, true)->toWordPress();
             } else {
-                $nextPage = 'buildings';
-                foreach ($_POST['npc___save'] as $id) {
-                    NPC::getFromPOST($id)->toWordPress();
+                /** @var City $city */
+                $city = $_SESSION['city'];
+                foreach ($city->getBuildings() as $building) {
+                    foreach ($building->getNPCs() as $npc) {
+                        $npc->toWordPress();
+                    }
                 }
+                $nextPage = 'buildings';
             }
             break;
         case 'buildings':
@@ -112,20 +121,26 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
             ?>
             <form action="#" method="POST">
                 <div style="padding-top: 10px;">
-                    <input type="submit" name="next" class="button button-primary button-large" value="Buildings >">
+                    <input type="submit" name="next" class="button button-primary button-large" value="buildings">
                 </div>
                 <br/>
                 <?= get_submit_button('Save all NPCs'); ?>
                 <br/>
                 <input type="hidden" name="save" value="npcs">
                 <?php
+                $npcNr= 0;
+                $from = $_POST['loadMore'] ?? 0;
+                $till = $from + 100;
                 foreach ($city->getBuildings() as $key => $building) {
-                    if ($building instanceof Building) {
-                        foreach ($building->getNPCs() as $npc) {
-                            if ($npc instanceof NPC) {
-                                echo $npc->getHTML();
-                            }
+                    foreach ($building->getNPCs() as $npc) {
+                        if ($npcNr >= $from && $npcNr < $till) {
+                            echo $npc->getHTML();
                         }
+                        ++$npcNr;
+                    }
+                    if ($npcNr > $till) {
+                        ?><br/><button type="button" id="loadMore" name="loadMore" value="<?= $till ?>">Load More</button><?php
+                        break;
                     }
                 }
                 ?>
@@ -138,8 +153,10 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
             ?>
             <form action="#" method="POST">
                 <div style="padding-top: 10px;">
-                    <input type="submit" name="previous" id="submit" class="button button-primary button-large" value="< NPC's">
-                    <input type="submit" name="next" id="submit" class="button button-primary button-large" value="City >">
+                    <input type="submit" name="previous" id="submit" class="button button-primary button-large"
+                           value="< NPC's">
+                    <input type="submit" name="next" id="submit" class="button button-primary button-large"
+                           value="City >">
                 </div>
                 <br/>
                 <?= get_submit_button('Save all Buildings'); ?>
@@ -161,7 +178,8 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
             ?>
             <form action="#" method="POST">
                 <div style="padding-top: 10px;">
-                    <input type="submit" name="previous" id="submit" class="button button-primary button-large" value="< Buildings">
+                    <input type="submit" name="previous" id="submit" class="button button-primary button-large"
+                           value="< Buildings">
                 </div>
                 <br/>
                 <?= get_submit_button('Save city') ?>

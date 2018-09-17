@@ -6,16 +6,17 @@
  * Time: 20:58
  */
 
-namespace Wizardawn\Parser;
+namespace dd_parser\Wizardawn\Parser;
 
 use Exception;
+use mp_general\base\BaseFunctions;
 use simple_html_dom;
 use simple_html_dom_node;
-use ssv_material_parser\Parser;
-use Wizardawn\Models\Building;
-use Wizardawn\Models\City;
-use Wizardawn\Models\Product;
-use Wizardawn\Models\Spell;
+use dd_parser\Parser;
+use dd_parser\Wizardawn\Models\Building;
+use dd_parser\Wizardawn\Models\City;
+use dd_parser\Wizardawn\Models\Product;
+use dd_parser\Wizardawn\Models\Spell;
 
 class BuildingParser extends Parser
 {
@@ -30,9 +31,8 @@ class BuildingParser extends Parser
      */
     public static function parseRoyalty(City &$city, simple_html_dom $html): City
     {
-        $children     = $html->childNodes();
         $building = new Building(-1, 'Royal');
-        foreach ($children as $child) {
+        foreach ($html->firstChild()->childNodes() as $child) {
             if (self::isRoyalty($child)) {
                 $building->addNPC(NPCParser::parseNPC($child, 'Royalty'));
             } elseif (self::isRoyalVault($child)) {
@@ -72,28 +72,27 @@ class BuildingParser extends Parser
      */
     public static function parseBuildings(City &$city, simple_html_dom $html): City
     {
-        $children     = $html->childNodes();
         $building     = new simple_html_dom_node($html);
         $buildingType = 'House';
-        foreach ($children as $child) {
+        foreach ($html->firstChild()->childNodes() as $child) {
             if (self::isBuildingID($child) || $child->tag == 'br') {
                 if (self::isBuildingID($building->firstChild())) {
                     $city->addBuilding(self::parseBuilding($building, $buildingType));
                 } else {
                     if ($building->lastChild()->tag == 'img') {
-                        if (mp_ends_with($building->lastChild()->getAttribute('src'), 'wtown_01.jpg')) {
+                        if (BaseFunctions::endsWith($building->lastChild()->getAttribute('src'), 'wtown_01.jpg')) {
                             $buildingType = 'House';
-                        } elseif (mp_ends_with($building->lastChild()->getAttribute('src'), 'wtown_02.jpg')) {
+                        } elseif (BaseFunctions::endsWith($building->lastChild()->getAttribute('src'), 'wtown_02.jpg')) {
                             $buildingType = 'Ruler';
-                        } elseif (mp_ends_with($building->lastChild()->getAttribute('src'), 'wtown_03.jpg')) {
+                        } elseif (BaseFunctions::endsWith($building->lastChild()->getAttribute('src'), 'wtown_03.jpg')) {
                             $buildingType = 'Guardhouse';
-                        } elseif (mp_ends_with($building->lastChild()->getAttribute('src'), 'wtown_04.jpg')) {
+                        } elseif (BaseFunctions::endsWith($building->lastChild()->getAttribute('src'), 'wtown_04.jpg')) {
                             $buildingType = 'Church';
-                        } elseif (mp_ends_with($building->lastChild()->getAttribute('src'), 'wtown_05.jpg')) {
+                        } elseif (BaseFunctions::endsWith($building->lastChild()->getAttribute('src'), 'wtown_05.jpg')) {
                             $buildingType = 'Bank';
-                        } elseif (mp_ends_with($building->lastChild()->getAttribute('src'), 'wtown_06.jpg')) {
+                        } elseif (BaseFunctions::endsWith($building->lastChild()->getAttribute('src'), 'wtown_06.jpg')) {
                             $buildingType = 'Merchant';
-                        } elseif (mp_ends_with($building->lastChild()->getAttribute('src'), 'wtown_07.jpg')) {
+                        } elseif (BaseFunctions::endsWith($building->lastChild()->getAttribute('src'), 'wtown_07.jpg')) {
                             $buildingType = 'Guild';
                         }
                     }
@@ -127,7 +126,7 @@ class BuildingParser extends Parser
             case 'Merchant':
                 $label = $node->childNodes(1)->childNodes(1)->text();
                 $building->setTitle($node->childNodes(1)->childNodes(0)->text());
-                if (mp_starts_with($label, '(') && mp_ends_with($label, ')')) {
+                if (BaseFunctions::startsWith($label, '(') && BaseFunctions::endsWith($label, ')')) {
                     $building->setTitle($building->getTitle() . ' ' . $label);
                     $building->setType('Inn');
                 }

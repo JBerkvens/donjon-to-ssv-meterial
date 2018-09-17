@@ -6,13 +6,14 @@
  * Time: 20:49
  */
 
-namespace Wizardawn\Models;
+namespace dd_parser\Wizardawn\Models;
 
 use Exception;
-use ssv_material_parser\Converter;
+use dd_parser\Converter;
 
 class NPC extends JsonObject
 {
+    public $race;
     public $type = 'citizen';
     public $profession = '';
     public $level = 1;
@@ -35,7 +36,14 @@ class NPC extends JsonObject
                 <td><label>Save</label></td>
                 <td>
                     <input type="checkbox" name="npc___save[]" value="<?= $this->id ?>" title="Save" checked>
-                    <button name="save_single" value="<?= $this->id ?>" title="Save Single" style="float: right;">Save <?= $this->name ?></button>
+                    <button name="save_single" value="<?= $this->id ?>" title="Save Single" style="float: right;">
+                        Save <?= $this->name ?></button>
+                </td>
+            </tr>
+            <tr>
+                <td><label>race</label></td>
+                <td>
+                    <input name="npc___race[<?= $this->id ?>]" value="<?= $this->race ?>" title="race">
                 </td>
             </tr>
             <tr>
@@ -120,6 +128,7 @@ class NPC extends JsonObject
         $npc = new self();
         $npc->setID($id);
         $fields = [
+            'race',
             'type',
             'profession',
             'level',
@@ -133,15 +142,15 @@ class NPC extends JsonObject
             'arms_armor',
         ];
         foreach ($fields as $field) {
-            if (!isset($_POST['npc___'.$field][$id])) {
+            if (!isset($_POST['npc___' . $field][$id])) {
                 throw new \Exception('The max_input_vars is set to low (not all fields are available in $_POST).');
             }
-            $value = $_POST['npc___'.$field][$id];
-            if (!empty($_POST['npc___'.$field][$id])) {
+            $value = $_POST['npc___' . $field][$id];
+            if (!empty($_POST['npc___' . $field][$id])) {
                 $npc->$field = $value;
             }
             if ($unset) {
-                unset($_POST['npc___'.$field][$id]);
+                unset($_POST['npc___' . $field][$id]);
             }
         }
         return $npc;
@@ -172,24 +181,35 @@ class NPC extends JsonObject
             return $foundNPC->ID;
         }
 
-        $thisTypeTerm = term_exists(ucfirst($this->type), 'npc_type', 0);
-        if (!$thisTypeTerm) {
-            $thisTypeTerm = wp_insert_term(ucfirst($this->type), 'npc_type', ['parent' => 0]);
-        }
-
-        $custom_tax = [
-            'npc_type' => [
-                $thisTypeTerm['term_taxonomy_id'],
-            ],
+        $taxonomies = [
+            'type',
+            'profession',
+            'race',
+            'class',
+            'level',
         ];
+        $custom_tax = [];
+        foreach ($taxonomies as $taxonomy) {
+            if (!empty($this->$taxonomy)) {
+                $term = term_exists(ucfirst($this->$taxonomy), 'npc_' . $taxonomy, 0);
+                if (!$term) {
+                    $term = wp_insert_term(ucfirst($this->$taxonomy), 'npc_' . $taxonomy, ['parent' => 0]);
+                }
+                $custom_tax = [
+                    'npc_' . $taxonomy => [
+                        $term['term_taxonomy_id'],
+                    ],
+                ];
+            }
+        }
 
         $wp_id = wp_insert_post(
             [
-                'post_title'   => $title,
+                'post_title' => $title,
                 'post_content' => $content,
-                'post_type'    => 'npc',
-                'post_status'  => 'publish',
-                'tax_input'    => $custom_tax,
+                'post_type' => 'npc',
+                'post_status' => 'publish',
+                'tax_input' => $custom_tax,
             ]
         );
         foreach ($this as $key => $value) {

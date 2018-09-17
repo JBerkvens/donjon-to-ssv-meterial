@@ -1,5 +1,5 @@
 <?php
-use ssv_material_parser\Parser;
+use dd_parser\Parser;
 
 /**
  * Created by PhpStorm.
@@ -15,9 +15,9 @@ class ImageCombiner
         $mapHeight = 0;
         $images    = [];
         foreach ($srcImagePaths as $index => $srcImagePath) {
-            if (mp_ends_with($srcImagePath, '.gif')) {
+            if (BaseFunctions::endsWith($srcImagePath, '.gif')) {
                 $tileImg = imagecreatefromgif($srcImagePath);
-            } elseif (mp_ends_with($srcImagePath, '.jpg')) {
+            } elseif (BaseFunctions::endsWith($srcImagePath, '.jpg')) {
                 $tileImg = imagecreatefromjpeg($srcImagePath);
             } else {
                 $tileImg = imagecreatefrompng($srcImagePath);

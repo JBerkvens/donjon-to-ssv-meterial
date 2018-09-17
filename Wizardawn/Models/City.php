@@ -1,8 +1,8 @@
 <?php
 
-namespace Wizardawn\Models;
+namespace dd_parser\Wizardawn\Models;
 
-use ssv_material_parser\Parser;
+use dd_parser\Parser;
 
 class City extends JsonObject
 {
@@ -46,7 +46,10 @@ class City extends JsonObject
         }
     }
 
-    public function getBuildings()
+    /**
+     * @return Building[]
+     */
+    public function getBuildings(): array
     {
         return $this->buildings;
     }

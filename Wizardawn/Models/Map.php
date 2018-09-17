@@ -1,6 +1,6 @@
 <?php
 
-namespace Wizardawn\Models;
+namespace dd_parser\Wizardawn\Models;
 
 use Exception;
 
