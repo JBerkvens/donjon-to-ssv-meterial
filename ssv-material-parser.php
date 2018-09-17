@@ -31,10 +31,11 @@ if (!class_exists('simple_html_dom_node')) {
     require_once 'include/simple_html_dom.php';
 }
 require_once 'ImageCombiner.php';
+require_once 'general/general.php';
 
 class Parser
 {
-        const PATH = SSV_MATERIAL_PARSER_PATH;
+    const PATH = SSV_MATERIAL_PARSER_PATH;
     const URL = SSV_MATERIAL_PARSER_URL;
 
     const REMOVE_HTML

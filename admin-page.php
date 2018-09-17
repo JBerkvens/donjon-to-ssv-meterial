@@ -6,7 +6,8 @@ if (!defined('ABSPATH')) {
 
 function ssv_material_parser_add_menu()
 {
-    add_submenu_page('mp_dd_settings', 'Parser', 'Parser', 'publish_posts', 'ssv_material_parser_material_parser', 'ssv_material_parser_settings_page');
+    add_menu_page('MP D&D', 'MP D&D', 'edit_posts', 'mp_dd_settings', 'ssv_material_parser_settings_page', 'dashicons-feedback');
+//    add_submenu_page('mp_dd_settings', 'Parser', 'Parser', 'publish_posts', 'ssv_material_parser_material_parser', 'ssv_material_parser_settings_page');
 }
 
 add_action('admin_menu', 'ssv_material_parser_add_menu', 9);

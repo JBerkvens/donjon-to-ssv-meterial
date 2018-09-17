@@ -4,6 +4,7 @@ namespace ssv_material_parser;
 
 use DOMDocument;
 use Exception;
+use mp_general\base\BaseFunctions;
 use Wizardawn\Models\City;
 use Wizardawn\Parser\BuildingParser;
 use Wizardawn\Parser\MapParser;
@@ -40,6 +41,7 @@ abstract class Converter extends Parser
         MapParser::parseMap($city, $html);
         BuildingParser::parseRoyalty($city, $html);
         BuildingParser::parseBuildings($city, $html);
+        BaseFunctions::var_export($city->getBuildings());
         return $city;
     }
 

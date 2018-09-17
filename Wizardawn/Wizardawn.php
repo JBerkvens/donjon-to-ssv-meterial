@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
     ?>
     <form action="#" method="post" enctype="multipart/form-data">
         <input type="hidden" name="save" value="upload">
-        <input type="file" name="html_file" required><br/>
+        <input type="file" name="html_file"><br/>
         <select name="parse_output">
             <option value="mp_dd">D&D Objects</option>
             <option value="html">HTML</option>
@@ -39,11 +39,14 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
             $uploadOverrides = array('test_form' => false);
             $movedFile       = wp_handle_upload($uploadedFile, $uploadOverrides);
             if (!$movedFile || isset($movedFile['error']) || $movedFile['type'] != 'text/html') {
-                echo $movedFile['error'];
-                return;
+                echo 'Using Test File.';
+                $movedFile = [
+                        'file' => Parser::PATH.'test/Eversprings.html',
+                ];
+//                echo $movedFile['error'];
+//                return;
             }
-            $fileContent = file_get_html($movedFile['file']);
-            $city             = Converter::Convert($fileContent);
+            $city             = Converter::Convert(file_get_contents($movedFile['file']));
             $_SESSION['city'] = $city;
             $_SESSION['saved_npcs'] = [];
             $_SESSION['saved_buildings'] = [];
