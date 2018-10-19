@@ -139,7 +139,7 @@ class City extends JsonObject
 
         $custom_tax = [
             'area_type' => [
-                $cityTerm['term_taxonomy_id'],
+                'City',
             ],
         ];
 

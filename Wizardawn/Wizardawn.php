@@ -28,6 +28,7 @@ if (!DEVELOP && $_SERVER['REQUEST_METHOD'] != 'POST') {
     </form>
     <?php
 } else {
+    set_time_limit(120);
     $nextPage = '';
     switch ($_POST['save'] ?? 'upload') {
         case 'upload':
@@ -70,7 +71,9 @@ if (!DEVELOP && $_SERVER['REQUEST_METHOD'] != 'POST') {
                 $city = $_SESSION['city'];
                 foreach ($city->getBuildings() as $building) {
                     foreach ($building->getNPCs() as $npc) {
-                        $npc->toWordPress();
+                        if ($npc instanceof NPC) {
+                            $npc->toWordPress();
+                        }
                     }
                 }
                 $nextPage = 'buildings';
@@ -90,10 +93,14 @@ if (!DEVELOP && $_SERVER['REQUEST_METHOD'] != 'POST') {
                 $id = $_POST['save_single'];
                 Building::getFromPOST($id, true)->toWordPress();
             } else {
-                $nextPage = 'city';
-                foreach ($_POST['building___save'] as $id) {
-                    Building::getFromPOST($id)->toWordPress();
+                /** @var City $city */
+                $city = $_SESSION['city'];
+                foreach ($city->getBuildings() as $building) {
+                    if ($building instanceof Building) {
+                        $building->toWordPress();
+                    }
                 }
+                $nextPage = 'city';
             }
             break;
         case 'city':
@@ -118,38 +125,46 @@ if (!DEVELOP && $_SERVER['REQUEST_METHOD'] != 'POST') {
         case 'npcs':
             /** @var City $city */
             $city = $_SESSION['city'];
+            $npcNr= 0;
+            $from = $_POST['loadMore'] ?? 0;
+            $till = $from + 100;
+            $formsHTML = '';
+            foreach ($city->getBuildings() as $key => $building) {
+                foreach ($building->getNPCs() as $npc) {
+                    if ($npcNr >= $from && $npcNr < $till && $npc instanceof NPC) {
+                        $formsHTML .= $npc->getHTML();
+                    }
+                    ++$npcNr;
+                }
+            }
+            $formsHTML .= '<br/><button type="button" id="loadMore" name="loadMore" value="'. $till .'">Load More</button>';
             ?>
             <form action="#" method="POST">
                 <div style="padding-top: 10px;">
                     <input type="submit" name="next" class="button button-primary button-large" value="buildings">
                 </div>
                 <br/>
-                <?= get_submit_button('Save all NPCs'); ?>
+                <?= get_submit_button('Save all '.$npcNr.' NPCs'); ?>
                 <br/>
                 <input type="hidden" name="save" value="npcs">
-                <?php
-                $npcNr= 0;
-                $from = $_POST['loadMore'] ?? 0;
-                $till = $from + 100;
-                foreach ($city->getBuildings() as $key => $building) {
-                    foreach ($building->getNPCs() as $npc) {
-                        if ($npcNr >= $from && $npcNr < $till) {
-                            echo $npc->getHTML();
-                        }
-                        ++$npcNr;
-                    }
-                    if ($npcNr > $till) {
-                        ?><br/><button type="button" id="loadMore" name="loadMore" value="<?= $till ?>">Load More</button><?php
-                        break;
-                    }
-                }
-                ?>
+                <?= $formsHTML ?>
             </form>
             <?php
             break;
         case 'buildings':
             /** @var City $city */
             $city = $_SESSION['city'];
+            $buildingNr = 0;
+            $from = $_POST['loadMore'] ?? 0;
+            $till = $from + 50;
+            $formsHTML = '';
+            foreach ($city->getBuildings() as $key => $building) {
+                if ($buildingNr >= $from && $buildingNr < $till) {
+                    $formsHTML .=$building->getHTML();
+                }
+                ++$buildingNr;
+            }
+            $formsHTML .= '<br/><button type="button" id="loadMore" name="loadMore" value="<?= $till ?>">Load More</button>';
             ?>
             <form action="#" method="POST">
                 <div style="padding-top: 10px;">
@@ -159,16 +174,10 @@ if (!DEVELOP && $_SERVER['REQUEST_METHOD'] != 'POST') {
                            value="City >">
                 </div>
                 <br/>
-                <?= get_submit_button('Save all Buildings'); ?>
+                <?= get_submit_button('Save all '.$buildingNr.' Buildings'); ?>
                 <br/>
                 <input type="hidden" name="save" value="buildings">
-                <?php
-                foreach ($city->getBuildings() as $key => $building) {
-                    if ($building instanceof Building) {
-                        echo $building->getHTML();
-                    }
-                }
-                ?>
+                <?= $formsHTML ?>
             </form>
             <?php
             break;

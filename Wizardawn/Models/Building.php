@@ -63,7 +63,7 @@ class Building extends JsonObject
     }
 
     /**
-     * @return NPC[]
+     * @return NPC[]|int[]
      */
     public function getNPCs(): array
     {
@@ -395,13 +395,13 @@ class Building extends JsonObject
                     $color = '#a0a0a0';
                     break;
             }
-            $thisTypeTerm = wp_insert_term(ucfirst($this->type), 'area_type', ['description' => $color, 'parent' => $buildingTerm['term_taxonomy_id']]);
+            wp_insert_term(ucfirst($this->type), 'area_type', ['description' => $color, 'parent' => $buildingTerm['term_taxonomy_id']]);
         }
 
         $custom_tax = [
             'area_type' => [
-                $buildingTerm['term_taxonomy_id'],
-                $thisTypeTerm['term_taxonomy_id'],
+                'Building',
+                $this->type,
             ],
         ];
 
@@ -443,12 +443,12 @@ class Building extends JsonObject
             echo '<h2>Occupants</h2>';
             echo '<ul class="collapsible" data-collapsible="expandable">';
             foreach ($collapsableNPCs as $npcID) {
-                echo '<li class="collection-item">[object-'.$npcID.'-li]</li>';
+                echo '<li class="collection-item">[npc id="'.$npcID.'"]</li>';
             }
             echo '</ul>';
         }
         foreach ($alwaysShowNPCs as $npcID) {
-            echo '[object-'.$npcID.']';
+            echo '[npc id="'.$npcID.'"]';
         }
         if (!empty($this->products)) {
             echo '<h2>Products</h2>';
@@ -456,7 +456,7 @@ class Building extends JsonObject
             echo '<tr><th>Product</th><th>Cost</th><th>In Stock</th></tr>';
             foreach ($this->products as $product) {
                 $productID = $product->toWordPress();
-                echo '[product-'.$productID.'-'.$product->cost.'-'.$product->inStock.']';
+                echo '<tr><td>[product id="'.$productID.'"]</td><td>'.$product->cost.'</td><td>'.$product->inStock.'</td></tr>';
             }
             echo '</table>';
         }
@@ -466,7 +466,7 @@ class Building extends JsonObject
             echo '<tr><th>Spell</th><th>Cost</th></tr>';
             foreach ($this->spells as $spell) {
                 $spellID = $spell->toWordPress();
-                echo '[spell-' . $spellID . '-' . $spell->cost . ']';
+                echo '<tr><td>[spell id="' . $spellID . '"]</td><td>' . $spell->cost . '</td></tr>';
             }
             echo '</table>';
         }

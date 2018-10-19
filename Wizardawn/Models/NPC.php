@@ -191,14 +191,8 @@ class NPC extends JsonObject
         $custom_tax = [];
         foreach ($taxonomies as $taxonomy) {
             if (!empty($this->$taxonomy)) {
-                $term = term_exists(ucfirst($this->$taxonomy), 'npc_' . $taxonomy, 0);
-                if (!$term) {
-                    $term = wp_insert_term(ucfirst($this->$taxonomy), 'npc_' . $taxonomy, ['parent' => 0]);
-                }
-                $custom_tax = [
-                    'npc_' . $taxonomy => [
-                        $term['term_taxonomy_id'],
-                    ],
+                $custom_tax['npc_' . $taxonomy] = [
+                    $this->$taxonomy,
                 ];
             }
         }
