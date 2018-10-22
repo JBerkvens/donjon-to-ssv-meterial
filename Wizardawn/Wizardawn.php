@@ -159,8 +159,8 @@ if (!DEVELOP && $_SERVER['REQUEST_METHOD'] != 'POST') {
             $till = $from + 50;
             $formsHTML = '';
             foreach ($city->getBuildings() as $key => $building) {
-                if ($buildingNr >= $from && $buildingNr < $till) {
-                    $formsHTML .=$building->getHTML();
+                if ($buildingNr >= $from && $buildingNr < $till && !is_numeric($building)) {
+                    $formsHTML .= $building->getHTML();
                 }
                 ++$buildingNr;
             }

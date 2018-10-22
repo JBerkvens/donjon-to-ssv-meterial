@@ -2,25 +2,33 @@
 
 namespace dd_parser\Wizardawn\Models;
 
-class Product extends JsonObject
+class VaultItem extends JsonObject
 {
-    public $name;
-    public $cost;
-    public $inStock;
+    const GEM = 'gem';
+    const JEWEL = 'jewel';
+    const OTHER = 'other';
 
-    public function __construct(string $name, string $cost, int $inStock, string $description = '')
+    public $type;
+    public $title;
+    public $cost;
+    public $count;
+    public $description;
+
+    public function __construct(string $type, string $title, string $description, string $cost, int $count)
     {
         parent::__construct();
-        $this->name = $name;
+        $this->type = $type;
+        $this->title = $title;
+        $this->description = $description;
         $this->cost = $cost;
-        $this->inStock = $inStock;
+        $this->count = $count;
     }
 
     public static function getFromArray(array $array)
     {
         $products = [];
-        for ($i = 0; $i < count($array['name']); ++$i) {
-            $product = new Product($array['name'][$i], $array['cost'][$i], $array['in_stock'][$i], $array['description'][$i]);
+        for ($i = 0; $i < count($array['title']); ++$i) {
+            $product = new VaultItem($array['type'][$i], $array['title'][$i], $array['description'][$i], $array['cost'][$i], intval($array['count'][$i]));
             $products[$product->id] = $product;
         }
         return $products;
@@ -30,7 +38,7 @@ class Product extends JsonObject
     {
         /** @var \wpdb $wpdb */
         global $wpdb;
-        $title = $this->name;
+        $title = $this->title;
         $sql   = "SELECT p.ID FROM $wpdb->posts AS p WHERE p.post_type = 'object' AND p.post_title = '$title'";
         /** @var \WP_Post $foundNPC */
         $foundProduct = $wpdb->get_row($sql);
@@ -39,21 +47,21 @@ class Product extends JsonObject
             return $foundProduct->ID;
         }
 
-        $thisTypeTerm = term_exists('Product', 'object_type', 0);
+        $thisTypeTerm = term_exists($this->type, 'object_type', 0);
         if (!$thisTypeTerm) {
-            wp_insert_term('Product', 'object_type', ['parent' => 0]);
+            wp_insert_term($this->type, 'object_type', ['parent' => 0]);
         }
 
         $custom_tax = [
             'object_type' => [
-                'Product',
+                $this->type,
             ],
         ];
 
         return wp_insert_post(
             [
                 'post_title'   => $title,
-                'post_content' => '',
+                'post_content' => $this->description,
                 'post_type'    => 'object',
                 'post_status'  => 'publish',
                 'tax_input'    => $custom_tax,

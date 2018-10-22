@@ -122,9 +122,11 @@ class Building extends JsonObject
                 $this->spells[$spells->id] = $spells;
             }
         }
-        foreach ($building->vaultItems as $item) {
-            if (!in_array($item, $this->vaultItems)) {
-                $this->vaultItems[] = $item;
+        foreach ($building->vaultItems as $type => $items) {
+            foreach ($items as $item) {
+                if (!in_array($item, $this->vaultItems[$type])) {
+                    $this->vaultItems[$type][] = $item;
+                }
             }
         }
 
@@ -135,7 +137,7 @@ class Building extends JsonObject
     {
         ob_start();
         ?>
-        <table style="position: relative; display: inline-block; border: 1px solid black; margin-right: 4px; width: 330px;">
+        <table style="position: relative; display: inline-block; border: 1px solid black; margin-right: 4px; width: 600px;">
             <tbody style="width: 100%; display: table;">
             <tr>
                 <td><label>Save</label></td>
@@ -213,9 +215,32 @@ class Building extends JsonObject
                 </td>
             </tr>
             <tr>
+                <?php $vaultItemId = 0; ?>
                 <td><label>Vault</label></td>
                 <td>
-                    <textarea name="building___vault[<?= $this->id ?>]"><?= implode(' --- ', $this->vaultItems) ?></textarea>
+                    <table style="width: 100%;">
+                        <tbody id="<?= $this->id ?>_vault_items_table" style="display: block; height: 150px; overflow-y: auto; overflow-x: hidden;">
+                        <?php /** @var VaultItem $vaultItem */ ?>
+                        <?php foreach ($this->vaultItems as $vaultItem): ?>
+                            <tr id="<?= $this->id ?>_vault_item_row_<?= $vaultItemId ?>">
+                                <td>
+                                    <select name="building___vault[<?= $this->id ?>][type][]" title="Vault Item Type" style="width: 70px">
+                                        <option value="<?= VaultItem::GEM ?>" <?= $vaultItem->type === VaultItem::GEM ? 'selected' : '' ?>><?= VaultItem::GEM ?></option>
+                                        <option value="<?= VaultItem::JEWEL ?>" <?= $vaultItem->type === VaultItem::JEWEL ? 'selected' : '' ?>><?= VaultItem::JEWEL ?></option>
+                                        <option value="<?= VaultItem::OTHER ?>" <?= $vaultItem->type === VaultItem::OTHER ? 'selected' : '' ?>><?= VaultItem::OTHER ?></option>
+                                    </select>
+                                </td>
+                                <td><input name="building___vault[<?= $this->id ?>][title][]" value="<?= $vaultItem->title ?>" title="Vault Item Name" style="width: 130px"></td>
+                                <td><input name="building___vault[<?= $this->id ?>][description][]" value="<?= $vaultItem->description ?>" title="Vault Item Description" style="width: 150px"></td>
+                                <td><input name="building___vault[<?= $this->id ?>][cost][]" value="<?= $vaultItem->cost ?>" title="Vault Item Cost" style="width: 70px"></td>
+                                <td><input name="building___vault[<?= $this->id ?>][count][]" value="<?= $vaultItem->count ?>" title="Vault Item Count" style="width: 30px"></td>
+                                <td><button type="button" onclick="removeVaultItem('<?= $this->id ?>', '<?= $vaultItemId ?>')">X</button></td>
+                            </tr>
+                            <?php ++$vaultItemId; ?>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                    <button type="button" onclick="addVaultItem('<?= $this->id ?>', this)" data-rows="<?= $spellID ?>">Add</button>
                 </td>
             </tr>
             <tr>
@@ -228,10 +253,6 @@ class Building extends JsonObject
         </table>
         <script>
             if (typeof removeProduct !== 'function') {
-                function removeProduct(buildingID, productID) {
-                    var row = document.getElementById(buildingID + '_product_row_' + productID);
-                    row.parentElement.removeChild(row);
-                }
 
                 function addProduct(buildingID, sender) {
                     var productID = sender.getAttribute('data-rows');
@@ -267,11 +288,10 @@ class Building extends JsonObject
                     sender.setAttribute('data-rows', productID);
                 }
 
-                function removeSpell(buildingID, spellID) {
-                    var row = document.getElementById(buildingID + '_spell_row_' + spellID);
+                function removeProduct(buildingID, productID) {
+                    var row = document.getElementById(buildingID + '_product_row_' + productID);
                     row.parentElement.removeChild(row);
                 }
-
 
                 function addSpell(buildingID, sender) {
                     var spellID = sender.getAttribute('data-rows');
@@ -299,6 +319,74 @@ class Building extends JsonObject
                     document.getElementById(buildingID + '_spells_table').appendChild(row);
                     spellID++;
                     sender.setAttribute('data-rows', spellID);
+                }
+
+                function removeSpell(buildingID, spellID) {
+                    var row = document.getElementById(buildingID + '_spell_row_' + spellID);
+                    row.parentElement.removeChild(row);
+                }
+
+                function addVaultItem(buildingID, sender) {
+                    var gemId = sender.getAttribute('data-rows');
+                    var row = document.createElement('tr');
+                    row.setAttribute('id', buildingID + '_vault_item_row_' + gemId);
+                    var tdType = document.createElement('td');
+                    var inputType = document.createElement('select');
+                    inputType.setAttribute('name', 'building___vault[' + buildingID + '][type][]');
+                    inputType.setAttribute('style', 'width: 70px;');
+                    let gemOption = document.createElement('option');
+                    gemOption.setAttribute('value', '<?= VaultItem::GEM ?>');
+                    gemOption.innerText = '<?= VaultItem::GEM ?>';
+                    inputType.appendChild(gemOption);
+                    let jewelOption = document.createElement('option');
+                    jewelOption.setAttribute('value', '<?= VaultItem::JEWEL ?>');
+                    jewelOption.innerText = '<?= VaultItem::JEWEL ?>';
+                    inputType.appendChild(jewelOption);
+                    let otherOption = document.createElement('option');
+                    otherOption.setAttribute('value', '<?= VaultItem::OTHER ?>');
+                    otherOption.innerText = '<?= VaultItem::OTHER ?>';
+                    inputType.appendChild(otherOption);
+                    tdType.appendChild(inputType);
+                    row.appendChild(tdType);
+                    var tdTitle = document.createElement('td');
+                    var inputTitle = document.createElement('input');
+                    inputTitle.setAttribute('name', 'building___vault[' + buildingID + '][title][]');
+                    inputTitle.setAttribute('style', 'width: 130px;');
+                    tdTitle.appendChild(inputTitle);
+                    row.appendChild(tdTitle);
+                    var tdDescription = document.createElement('td');
+                    var inputDescription = document.createElement('input');
+                    inputDescription.setAttribute('name', 'building___vault[' + buildingID + '][description][]');
+                    inputDescription.setAttribute('style', 'width: 150px;');
+                    tdDescription.appendChild(inputDescription);
+                    row.appendChild(tdDescription);
+                    var tdCost = document.createElement('td');
+                    var inputCost = document.createElement('input');
+                    inputCost.setAttribute('name', 'building___vault[' + buildingID + '][cost][]');
+                    inputCost.setAttribute('style', 'width: 70px;');
+                    tdCost.appendChild(inputCost);
+                    row.appendChild(tdCost);
+                    var tdCount = document.createElement('td');
+                    var inputCount = document.createElement('input');
+                    inputCount.setAttribute('name', 'building___vault[' + buildingID + '][count][]');
+                    inputCount.setAttribute('style', 'width: 30px;');
+                    tdCount.appendChild(inputCount);
+                    row.appendChild(tdCount);
+                    var tdRemove = document.createElement('td');
+                    var buttonRemove = document.createElement('button');
+                    buttonRemove.setAttribute('type', 'button');
+                    buttonRemove.setAttribute('onclick', 'removeVaultItem(\'' + buildingID + '\', \'' + gemId + '\')');
+                    buttonRemove.innerHTML = 'X';
+                    tdRemove.appendChild(buttonRemove);
+                    row.appendChild(tdRemove);
+                    document.getElementById(buildingID + '_vault_items_table').appendChild(row);
+                    gemId++;
+                    sender.setAttribute('data-rows', gemId);
+                }
+
+                function removeVaultItem(buildingID, vaultItemId) {
+                    var row = document.getElementById(buildingID + '_vault_item_row_' + vaultItemId);
+                    row.parentElement.removeChild(row);
                 }
             }
         </script>
@@ -329,7 +417,7 @@ class Building extends JsonObject
                 } elseif ($field == 'spells') {
                     $building->spells = Spell::getFromArray($value);
                 } elseif ($field == 'vault') {
-                    $building->vaultItems = explode(' --- ', $value);
+                    $building->vaultItems = VaultItem::getFromArray($value);
                 } else {
                     $building->$field = $value;
                 }
@@ -430,28 +518,38 @@ class Building extends JsonObject
             $savedNPCs = $_SESSION['saved_npcs'];
         }
         $alwaysShowNPCs = [];
+        $occupants = [];
         foreach ($savedNPCs as $npcID => $npc) {
             if (in_array($npcID, $this->npcs)) {
-                if (!empty($npc->profession) || $this->type == 'House') {
-                    $alwaysShowNPCs[] = $npcID;
+                if ($npc->type === 'owner' || empty($npc->profession)) {
+                    $occupants[] = $npcID;
                 } else {
-                    $collapsableNPCs[] = $npcID;
+                    $alwaysShowNPCs[] = $npcID;
                 }
             }
         }
-        if (!empty($collapsableNPCs)) {
-            echo '<h2>Occupants</h2>';
+        if ($this->type == 'House') {
+            $alwaysShowNPCs = array_merge($alwaysShowNPCs, $occupants);
+            $occupants = [];
+            echo '<h1>OccupantsA</h1>';
+        }
+        if (count($occupants) === 1) {
+            echo '<h1>OccupantsB</h1>';
+            array_unshift($alwaysShowNPCs, array_pop($occupants));
+        }
+        if (!empty($occupants)) {
+            echo '<h1>OccupantsC</h1>';
             echo '<ul class="collapsible" data-collapsible="expandable">';
-            foreach ($collapsableNPCs as $npcID) {
-                echo '<li class="collection-item">[npc id="'.$npcID.'"]</li>';
+            foreach ($occupants as $npcID) {
+                echo '<li class="collection-item">[npc id="'.$npcID.'" display="li"]</li>';
             }
             echo '</ul>';
         }
         foreach ($alwaysShowNPCs as $npcID) {
-            echo '[npc id="'.$npcID.'"]';
+            echo '[npc id="'.$npcID.'"]'.PHP_EOL;
         }
         if (!empty($this->products)) {
-            echo '<h2>Products</h2>';
+            echo '<h1>Products</h1>';
             echo '<table class="striped">';
             echo '<tr><th>Product</th><th>Cost</th><th>In Stock</th></tr>';
             foreach ($this->products as $product) {
@@ -461,7 +559,7 @@ class Building extends JsonObject
             echo '</table>';
         }
         if (!empty($this->spells)) {
-            echo '<h2>Spells</h2>';
+            echo '<h1>Spells</h1>';
             echo '<table class="striped">';
             echo '<tr><th>Spell</th><th>Cost</th></tr>';
             foreach ($this->spells as $spell) {
@@ -472,10 +570,48 @@ class Building extends JsonObject
         }
 
         if (!empty($this->vaultItems)) {
-            echo '<ul class="collection with-header">';
-            echo '<li class="collection-header"><h3>Royal Vault</h3></li>';
+            echo '<h1>Royal Vault</h1>';
+            echo '<ul class="collection collapsible with-header">';
+            $gems = [];
+            $jewels = [];
+            $vaultItems = [];
+            /** @var VaultItem $item */
             foreach ($this->vaultItems as $item) {
-                echo '<li class="collection-item">'.$item.'</li>';
+                switch ($item->type) {
+                    case VaultItem::GEM:
+                        $gems[] = $item;
+                        break;
+                    case VaultItem::JEWEL:
+                        $jewels[] = $item;
+                        break;
+                    case VaultItem::OTHER:
+                        $vaultItems[] = $item;
+                        break;
+                }
+            }
+            foreach (['Gems' => $gems, 'Jewels' => $jewels, 'Other' => $vaultItems] as $header => $vaultItems) {
+                if (!empty($vaultItems)) {
+                    echo '<li class="collection-header"><h3>'.$header.'</h3></li>';
+                    foreach ($vaultItems as $vaultItem) {
+                        $title = $vaultItem->title;
+                        if ($vaultItem->count > 1) {
+                            $title = $vaultItem->count . 'x ' . $title;
+                        }
+                        if ($vaultItem->cost !== '') {
+                            $title .= ' (' . $vaultItem->cost . ')';
+                        }
+                        if ($vaultItem->description !== '') {
+                            ?>
+                            <li>
+                                <div class="collapsible-header collection-item"><?= $title ?></div>
+                                <div class="collapsible-body"><?= $vaultItem->description ?></div>
+                            </li>
+                            <?php
+                        } else {
+                            ?><li class="collection-item"><?= $title ?></li><?php
+                        }
+                    }
+                }
             }
             echo '</ul>';
         }

@@ -40,12 +40,12 @@ class Spell extends JsonObject
 
         $thisTypeTerm = term_exists('Spell', 'object_type', 0);
         if (!$thisTypeTerm) {
-            $thisTypeTerm = wp_insert_term('Spell', 'object_type', ['parent' => 0]);
+            wp_insert_term('Spell', 'object_type', ['parent' => 0]);
         }
 
         $custom_tax = [
             'object_type' => [
-                $thisTypeTerm['term_taxonomy_id'],
+                'Spell',
             ],
         ];
 

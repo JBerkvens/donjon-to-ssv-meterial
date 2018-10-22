@@ -18,13 +18,6 @@ function dd_parser_register_plugin()
 }
 register_activation_hook(DD_PARSER_PATH . 'ssv-material-parser.php', 'dd_parser_register_plugin');
 
-function dd_parser_enqueue_admin_scripts()
-{
-    wp_enqueue_script('dd_parser_draggable', Parser::URL. 'js/ssv-material-parser-draggable.js', ['jquery']);
-}
-
-add_action('admin_enqueue_scripts', 'dd_parser_enqueue_admin_scripts', 12);
-
 function dd_parser_session()
 {
     require_once "Wizardawn/Models/JsonObject.php";
@@ -37,6 +30,7 @@ function dd_parser_session()
     require_once "Wizardawn/Models/NPC.php";
     require_once "Wizardawn/Models/Product.php";
     require_once "Wizardawn/Models/Spell.php";
+    require_once "Wizardawn/Models/VaultItem.php";
 }
 
 add_action('before_session_start', 'dd_parser_session', 1);

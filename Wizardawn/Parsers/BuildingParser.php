@@ -8,6 +8,7 @@
 
 namespace dd_parser\Wizardawn\Parser;
 
+use dd_parser\Wizardawn\Models\VaultItem;
 use Exception;
 use mp_general\base\BaseFunctions;
 use simple_html_dom;
@@ -36,7 +37,7 @@ class BuildingParser extends Parser
             if (self::isRoyalty($child)) {
                 $building->addNPC(NPCParser::parseNPC($child, 'Royalty'));
             } elseif (self::isRoyalVault($child)) {
-                $building->setVaultItems(explode('---', str_replace('ROYAL VAULT:', '', $child->text())));
+                $building->setVaultItems(self::parseVaultItems(explode('---', str_replace('ROYAL VAULT:', '', $child->text()))));
             }
         }
         $building->setTitle($city->getTitle() . ' Royal Building');
@@ -190,6 +191,38 @@ class BuildingParser extends Parser
             $productList[$product->id] = $product;
         }
         return $productList;
+    }
+
+    private static function parseVaultItems(array $items): array
+    {
+        $vaultItems = [];
+        foreach ($items as $item) {
+            $item = trim($item);
+            if (BaseFunctions::startsWith($item, 'GEMS')) {
+                preg_match('/\[([0-9]+) each\]/', $item, $matches);
+                $count = $matches[1];
+                $item = str_replace('GEMS'.$matches[0].':', '', $item);
+                preg_match('/\((.*)\)/', $item, $matches);
+                $price = $matches[1];
+                $item = str_replace($matches[0], '', $item);
+                $vaultItems[] = new VaultItem(VaultItem::GEM, trim($item), '', $price, intval($count));
+            } elseif (BaseFunctions::startsWith($item, 'JEWELRY:')) {
+                $item = str_replace('JEWELRY:', '', $item);
+                preg_match('/\((.*)\)/', $item, $matches);
+                $price = $matches[1];
+                $item = str_replace($matches[0], '', $item);
+                $vaultItems[] = new VaultItem(VaultItem::JEWEL, trim($item), '', $price, 1);
+            } else {
+                if (preg_match('/\[(.*)\]/', $item, $matches)) {
+                    $item = str_replace($matches[0], '', $item);
+                    $description = $matches[1];
+                } else {
+                    $description = '';
+                }
+                $vaultItems[] = new VaultItem(VaultItem::OTHER, trim($item), $description, '', 1);
+            }
+        }
+        return $vaultItems;
     }
 
     /**
